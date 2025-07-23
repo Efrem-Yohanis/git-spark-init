@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 
 interface CreateFlowDialogProps {
@@ -20,6 +21,7 @@ interface CreateFlowDialogProps {
 
 export function CreateFlowDialog({ open, onOpenChange }: CreateFlowDialogProps) {
   const [flowName, setFlowName] = useState("");
+  const [flowDescription, setFlowDescription] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -41,6 +43,7 @@ export function CreateFlowDialog({ open, onOpenChange }: CreateFlowDialogProps) 
       toast.success("Flow created successfully!");
       onOpenChange(false);
       setFlowName("");
+      setFlowDescription("");
       
       // Navigate to flow editor
       navigate(`/flows/${flowId}/edit`);
@@ -77,6 +80,18 @@ export function CreateFlowDialog({ open, onOpenChange }: CreateFlowDialogProps) 
                   handleCreate();
                 }
               }}
+            />
+          </div>
+          <div className="grid grid-cols-4 items-start gap-4">
+            <Label htmlFor="flowDescription" className="text-right pt-2">
+              Description
+            </Label>
+            <Textarea
+              id="flowDescription"
+              value={flowDescription}
+              onChange={(e) => setFlowDescription(e.target.value)}
+              placeholder="Enter flow description..."
+              className="col-span-3 min-h-20"
             />
           </div>
         </div>

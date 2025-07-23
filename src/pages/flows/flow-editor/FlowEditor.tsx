@@ -1,8 +1,8 @@
 import React, { useState, useCallback } from 'react';
 import { Node } from '@xyflow/react';
 import { FlowCanvas } from './FlowCanvas';
-import { NodeToolbar } from './NodeToolbar';
-import { PropertiesPanel } from './PropertiesPanel';
+import { NodePalette } from './node-palette';
+import { NodeDetails } from './node-details';
 import { FlowHeader } from './FlowHeader';
 
 export function FlowEditor() {
@@ -40,14 +40,13 @@ export function FlowEditor() {
       />
       
       <div className="flex-1 flex">
-        <NodeToolbar onAddNode={handleAddNode} />
+        <NodePalette onAddNode={handleAddNode} />
         
         <FlowCanvas onNodeSelect={handleNodeSelect} />
         
-        <PropertiesPanel
+        <NodeDetails
           selectedNode={selectedNode}
           onUpdateNode={handleUpdateNode}
-          onDeleteNode={handleDeleteNode}
         />
       </div>
     </div>

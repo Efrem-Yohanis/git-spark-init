@@ -43,19 +43,6 @@ export function FlowHeader({ flowName, onAction }: FlowHeaderProps) {
 
         {/* Right: Actions */}
         <div className="flex items-center gap-2">
-          {/* Execution controls */}
-          <div className="flex items-center gap-1 border-r border-border pr-2 mr-2">
-            <Button size="sm" variant="outline">
-              <Play className="w-4 h-4 mr-1" />
-              Test Run
-            </Button>
-            <Button size="sm" variant="outline">
-              <Square className="w-4 h-4 mr-1" />
-              Stop
-            </Button>
-          </div>
-
-          {/* Flow management */}
           <Button 
             size="sm" 
             variant="outline"
@@ -63,36 +50,6 @@ export function FlowHeader({ flowName, onAction }: FlowHeaderProps) {
           >
             <Save className="w-4 h-4 mr-1" />
             Save
-          </Button>
-          
-          <Button 
-            size="sm" 
-            variant="default"
-            onClick={() => onAction('deploy')}
-          >
-            <Upload className="w-4 h-4 mr-1" />
-            Deploy
-          </Button>
-
-          <Button 
-            size="sm" 
-            variant="outline"
-            onClick={() => onAction('export')}
-          >
-            <Download className="w-4 h-4 mr-1" />
-            Export
-          </Button>
-
-          <Button 
-            size="sm" 
-            variant="outline"
-            onClick={() => onAction('settings')}
-          >
-            <Settings className="w-4 h-4" />
-          </Button>
-
-          <Button size="sm" variant="outline">
-            <MoreHorizontal className="w-4 h-4" />
           </Button>
         </div>
       </div>

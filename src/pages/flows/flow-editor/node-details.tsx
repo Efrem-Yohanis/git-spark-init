@@ -59,106 +59,54 @@ export function NodeDetails({ selectedNode, onUpdateNode }: NodeDetailsProps) {
     <div className="w-80 border-l border-border bg-muted/50 p-4 overflow-y-auto">
       <div className="space-y-6">
         <div>
-          <h3 className="font-semibold mb-4">Node Details</h3>
+          <h3 className="font-semibold mb-4">Node Properties</h3>
           
           <div className="space-y-4">
             <div>
-              <Label htmlFor="nodeName">Node Name</Label>
-              <Input
-                id="nodeName"
-                value={String(selectedNode.data.label || "")}
-                onChange={(e) => onUpdateNode(selectedNode.id, { label: e.target.value })}
-              />
-            </div>
-
-            <div>
-              <Label>Node Type</Label>
-              <p className="text-sm text-muted-foreground mt-1">
-                {String(selectedNode.data.nodeType || "Unknown")}
+              <Label>Label</Label>
+              <p className="text-sm text-muted-foreground mt-1 p-2 bg-background border rounded">
+                {String(selectedNode.data.label || "No label")}
               </p>
             </div>
 
             <div>
-              <Label>Deployment Status</Label>
-              <div className="mt-1">
-                <Badge variant={selectedNode.data.deployed ? "default" : "outline"}>
-                  {selectedNode.data.deployed ? "Deployed" : "Not Deployed"}
-                </Badge>
-              </div>
+              <Label>Description</Label>
+              <p className="text-sm text-muted-foreground mt-1 p-2 bg-background border rounded min-h-16">
+                {String(selectedNode.data.description || "No description")}
+              </p>
+            </div>
+
+            <div>
+              <Label>Total Number of Subnodes</Label>
+              <p className="text-sm text-muted-foreground mt-1 p-2 bg-background border rounded">
+                {Array.isArray(selectedNode.data.subnodes) ? selectedNode.data.subnodes.length : 0}
+              </p>
+            </div>
+
+            <div>
+              <Label>Total Number of Parameters</Label>
+              <p className="text-sm text-muted-foreground mt-1 p-2 bg-background border rounded">
+                {selectedNode.data.parameters && typeof selectedNode.data.parameters === 'object' 
+                  ? Object.keys(selectedNode.data.parameters).length 
+                  : 0}
+              </p>
+            </div>
+
+            <div>
+              <Label htmlFor="subnodeSelect">Assign Subnode</Label>
+              <Select>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a subnode" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="subnode1">Data Validation Subnode</SelectItem>
+                  <SelectItem value="subnode2">Data Transformation Subnode</SelectItem>
+                  <SelectItem value="subnode3">Error Handling Subnode</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </div>
-
-        <Collapsible open={isSubnodesOpen} onOpenChange={setIsSubnodesOpen}>
-          <CollapsibleTrigger asChild>
-            <Button variant="ghost" className="w-full justify-between p-0 h-auto">
-              <span className="font-medium">Subnodes</span>
-              <ChevronDown className={`h-4 w-4 transition-transform ${isSubnodesOpen ? 'rotate-180' : ''}`} />
-            </Button>
-          </CollapsibleTrigger>
-          <CollapsibleContent className="space-y-3 mt-3">
-            <div className="space-y-2">
-              {Array.isArray(selectedNode.data.subnodes) && selectedNode.data.subnodes.map((subnode: any) => (
-                <div key={subnode.id} className="p-3 border rounded-lg bg-background">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-medium text-sm">{subnode.name}</span>
-                    <Badge variant={subnode.deployed ? "default" : "outline"} className="text-xs">
-                      {subnode.deployed ? "Deployed" : "Not Deployed"}
-                    </Badge>
-                  </div>
-                  {subnode.scriptName && (
-                    <p className="text-xs text-muted-foreground">
-                      Script: {subnode.scriptName}
-                    </p>
-                  )}
-                </div>
-              ))}
-            </div>
-            
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="w-full"
-              onClick={handleAddSubnode}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Subnode
-            </Button>
-          </CollapsibleContent>
-        </Collapsible>
-
-        <Collapsible open={isParamsOpen} onOpenChange={setIsParamsOpen}>
-          <CollapsibleTrigger asChild>
-            <Button variant="ghost" className="w-full justify-between p-0 h-auto">
-              <span className="font-medium">Parameters</span>
-              <ChevronDown className={`h-4 w-4 transition-transform ${isParamsOpen ? 'rotate-180' : ''}`} />
-            </Button>
-          </CollapsibleTrigger>
-          <CollapsibleContent className="space-y-3 mt-3">
-            <div className="space-y-2">
-              {Array.isArray(selectedNode.data.parameters) && selectedNode.data.parameters.map((param: any) => (
-                <div key={param.id} className="p-3 border rounded-lg bg-background">
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium text-sm">{param.key}</span>
-                      <Badge variant="outline" className="text-xs">
-                        {param.type}
-                      </Badge>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Default: {param.defaultValue}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-            
-            <Button variant="outline" size="sm" className="w-full">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Parameter
-            </Button>
-          </CollapsibleContent>
-        </Collapsible>
 
         <div className="pt-4 border-t">
           <Button 
@@ -168,7 +116,7 @@ export function NodeDetails({ selectedNode, onUpdateNode }: NodeDetailsProps) {
             onClick={handleRemoveNode}
           >
             <Trash2 className="h-4 w-4 mr-2" />
-            Remove Node
+            Delete Node
           </Button>
         </div>
       </div>

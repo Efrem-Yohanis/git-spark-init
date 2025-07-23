@@ -81,7 +81,6 @@ export function NodePalette({ onAddNode }: NodePaletteProps) {
                       className="w-full justify-start h-auto p-3 cursor-grab active:cursor-grabbing"
                       draggable
                       onDragStart={(e) => handleDragStart(e, node.type, node.name)}
-                      onClick={() => onAddNode(node.type, node.name)}
                     >
                       <IconComponent className="h-4 w-4 mr-3" />
                       <div className="text-left">
