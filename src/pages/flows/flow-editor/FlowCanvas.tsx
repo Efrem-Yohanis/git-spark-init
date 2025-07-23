@@ -212,7 +212,7 @@ export function FlowCanvas({ onNodeSelect }: FlowCanvasProps) {
       }
 
       const { nodeType, nodeName } = JSON.parse(data);
-      const position = reactFlowInstance.screenToFlowPosition({
+      const position = reactFlowInstance.project({
         x: event.clientX - reactFlowBounds.left,
         y: event.clientY - reactFlowBounds.top,
       });
