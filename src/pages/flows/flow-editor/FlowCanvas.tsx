@@ -25,6 +25,7 @@ import { DiameterInterfaceNode } from './nodes/DiameterInterfaceNode';
 import { RawBackupNode } from './nodes/RawBackupNode';
 
 const nodeTypes = {
+  // Existing specific nodes
   sftp_collector: SftpCollectorNode,
   fdc: FdcNode,
   asn1_decoder: Asn1DecoderNode,
@@ -34,6 +35,17 @@ const nodeTypes = {
   encoder: EncoderNode,
   diameter_interface: DiameterInterfaceNode,
   raw_backup: RawBackupNode,
+  
+  // Generic nodes from palette
+  database: SftpCollectorNode, // Use as fallback
+  file: SftpCollectorNode,
+  api: SftpCollectorNode,
+  transform: ValidationBlnNode,
+  compute: EncoderNode,
+  filter: ValidationBlnNode,
+  database_sink: RawBackupNode,
+  file_output: RawBackupNode,
+  api_output: DiameterInterfaceNode,
 };
 
 const initialNodes: Node[] = [
@@ -165,6 +177,7 @@ interface FlowCanvasProps {
 export function FlowCanvas({ onNodeSelect }: FlowCanvasProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+  const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
 
   const onConnect = useCallback(
     (params: Edge | Connection) => setEdges((eds) => addEdge(params, eds)),
@@ -182,6 +195,45 @@ export function FlowCanvas({ onNodeSelect }: FlowCanvasProps) {
     onNodeSelect(null);
   }, [onNodeSelect]);
 
+  const onDragOver = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+  }, []);
+
+  const onDrop = useCallback(
+    (event: React.DragEvent) => {
+      event.preventDefault();
+
+      const reactFlowBounds = event.currentTarget.getBoundingClientRect();
+      const data = event.dataTransfer.getData('application/reactflow');
+
+      if (!data || !reactFlowInstance) {
+        return;
+      }
+
+      const { nodeType, nodeName } = JSON.parse(data);
+      const position = reactFlowInstance.project({
+        x: event.clientX - reactFlowBounds.left,
+        y: event.clientY - reactFlowBounds.top,
+      });
+
+      const newNode: Node = {
+        id: `${nodeType}-${Date.now()}`,
+        type: nodeType,
+        position,
+        data: {
+          label: nodeName,
+          description: `New ${nodeName} node`,
+          parameters: {},
+          subnodes: []
+        },
+      };
+
+      setNodes((nds) => nds.concat(newNode));
+    },
+    [reactFlowInstance, setNodes]
+  );
+
   return (
     <div className="flex-1 bg-canvas-background">
       <ReactFlow
@@ -192,6 +244,9 @@ export function FlowCanvas({ onNodeSelect }: FlowCanvasProps) {
         onConnect={onConnect}
         onNodeClick={onNodeClick}
         onPaneClick={onPaneClick}
+        onInit={setReactFlowInstance}
+        onDrop={onDrop}
+        onDragOver={onDragOver}
         nodeTypes={nodeTypes}
         fitView
         className="bg-canvas-background"
