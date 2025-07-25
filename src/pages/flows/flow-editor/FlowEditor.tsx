@@ -90,7 +90,7 @@ const connectorOptions = {
 
 export function FlowEditor() {
   const { toast } = useToast();
-  const [activeView, setActiveView] = useState<'flows' | 'create'>('flows');
+  const [activeView, setActiveView] = useState<'flows' | 'create'>('create');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   
   // Default flows with proper Node<NodeData> typing
