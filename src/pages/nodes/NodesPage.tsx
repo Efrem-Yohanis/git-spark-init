@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Upload, Download, Settings, Trash2, Eye } from "lucide-react";
+import { Plus, Upload, Download, Settings, Trash2, Eye, Grid2X2, List } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -11,6 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 
 // Mock data for nodes
@@ -41,6 +42,7 @@ const mockNodes = [
 export function NodesPage() {
   const [nodes, setNodes] = useState(mockNodes);
   const [searchTerm, setSearchTerm] = useState("");
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const navigate = useNavigate();
 
   const filteredNodes = nodes.filter(node =>
@@ -82,6 +84,24 @@ export function NodesPage() {
         </div>
         
         <div className="flex items-center space-x-2">
+          <div className="flex border border-border rounded-md">
+            <Button
+              onClick={() => setViewMode('grid')}
+              variant={viewMode === 'grid' ? 'default' : 'ghost'}
+              size="sm"
+              className="rounded-r-none"
+            >
+              <Grid2X2 className="h-4 w-4" />
+            </Button>
+            <Button
+              onClick={() => setViewMode('list')}
+              variant={viewMode === 'list' ? 'default' : 'ghost'}
+              size="sm"
+              className="rounded-l-none"
+            >
+              <List className="h-4 w-4" />
+            </Button>
+          </div>
           <Button variant="outline" size="sm">
             <Upload className="h-4 w-4 mr-2" />
             Import Node
@@ -93,61 +113,133 @@ export function NodesPage() {
         </div>
       </div>
 
-      <div className="border rounded-lg">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Deployment Status</TableHead>
-              <TableHead>Created Date</TableHead>
-              <TableHead>Created By</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredNodes.map((node) => (
-              <TableRow key={node.id}>
-                <TableCell className="font-medium">{node.name}</TableCell>
-                <TableCell>
+      {viewMode === 'grid' ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredNodes.map((node) => (
+            <Card key={node.id} className="bg-card border-border">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-foreground text-sm flex items-center justify-between">
+                  {node.name}
                   <Badge 
                     variant={getDeploymentBadge(node.deployment).variant}
                     className={getDeploymentBadge(node.deployment).className}
                   >
                     {node.deployment === "deployed" ? "Deployed" : "Not Deployed"}
                   </Badge>
-                </TableCell>
-                <TableCell>{node.createdDate}</TableCell>
-                <TableCell>{node.createdBy}</TableCell>
-                <TableCell className="text-right">
-                  <div className="flex items-center justify-end space-x-2">
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="text-muted-foreground">
+                    <span className="font-medium">Created:</span> {node.createdDate}
+                  </div>
+                  <div className="text-muted-foreground">
+                    <span className="font-medium">By:</span> {node.createdBy}
+                  </div>
+                </div>
+                
+                <div className="space-y-1">
+                  <div className="text-xs text-muted-foreground">
+                    <span className="font-medium">Status:</span>
+                    <Badge 
+                      variant={getDeploymentBadge(node.deployment).variant}
+                      className={`${getDeploymentBadge(node.deployment).className} ml-2 text-xs`}
+                    >
+                      {node.deployment === "deployed" ? "Deployed" : "Not Deployed"}
+                    </Badge>
+                  </div>
+                </div>
+                
+                <div className="pt-2 border-t border-border">
+                  <div className="text-xs font-medium text-foreground mb-2">Actions:</div>
+                  <div className="flex gap-2 flex-wrap">
                     <Button 
                       variant="outline" 
                       size="sm"
                       onClick={() => navigate(`/nodes/${node.id}`)}
                     >
-                      <Eye className="h-4 w-4" />
+                      <Eye className="h-3 w-3 mr-1" />
+                      View
                     </Button>
                     <Button 
                       variant="outline" 
                       size="sm"
                       onClick={() => handleExport(node)}
                     >
-                      <Download className="h-4 w-4" />
+                      <Download className="h-3 w-3 mr-1" />
+                      Export
                     </Button>
                     <Button 
                       variant="outline" 
                       size="sm" 
                       onClick={() => handleDelete(node.id)}
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-3 w-3 mr-1" />
+                      Delete
                     </Button>
                   </div>
-                </TableCell>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <div className="border rounded-lg">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Deployment Status</TableHead>
+                <TableHead>Created Date</TableHead>
+                <TableHead>Created By</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+            </TableHeader>
+            <TableBody>
+              {filteredNodes.map((node) => (
+                <TableRow key={node.id}>
+                  <TableCell className="font-medium">{node.name}</TableCell>
+                  <TableCell>
+                    <Badge 
+                      variant={getDeploymentBadge(node.deployment).variant}
+                      className={getDeploymentBadge(node.deployment).className}
+                    >
+                      {node.deployment === "deployed" ? "Deployed" : "Not Deployed"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>{node.createdDate}</TableCell>
+                  <TableCell>{node.createdBy}</TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end space-x-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => navigate(`/nodes/${node.id}`)}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleExport(node)}
+                      >
+                        <Download className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => handleDelete(node.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
     </div>
   );
 }

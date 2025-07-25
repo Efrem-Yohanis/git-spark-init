@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Download, Settings, Trash2, Eye, Edit } from "lucide-react";
+import { Plus, Download, Settings, Trash2, Eye, Edit, Grid2X2, List } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -12,6 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 // Mock data for parameters
 const mockParameters = [
@@ -76,6 +77,7 @@ export function ParametersPage() {
   const navigate = useNavigate();
   const [parameters] = useState(mockParameters);
   const [searchTerm, setSearchTerm] = useState("");
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   const filteredParameters = parameters.filter(param =>
     param.key.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -101,6 +103,24 @@ export function ParametersPage() {
         </div>
         
         <div className="flex items-center space-x-2">
+          <div className="flex border border-border rounded-md">
+            <Button
+              onClick={() => setViewMode('grid')}
+              variant={viewMode === 'grid' ? 'default' : 'ghost'}
+              size="sm"
+              className="rounded-r-none"
+            >
+              <Grid2X2 className="h-4 w-4" />
+            </Button>
+            <Button
+              onClick={() => setViewMode('list')}
+              variant={viewMode === 'list' ? 'default' : 'ghost'}
+              size="sm"
+              className="rounded-l-none"
+            >
+              <List className="h-4 w-4" />
+            </Button>
+          </div>
           <Button variant="outline" size="sm">
             <Plus className="h-4 w-4 mr-2" />
             Import
@@ -112,68 +132,139 @@ export function ParametersPage() {
         </div>
       </div>
 
-      <div className="border rounded-lg">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Key</TableHead>
-              <TableHead>Default Value</TableHead>
-              <TableHead>Parent Node</TableHead>
-              <TableHead>Node Status</TableHead>
-              <TableHead>Updated By</TableHead>
-              <TableHead>Updated At</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredParameters.map((param) => (
-              <TableRow key={param.id}>
-                <TableCell>
-                  <Button 
-                    variant="link" 
-                    className="h-auto p-0 font-medium"
-                    onClick={() => navigate(`/parameters/${param.id}`)}
-                  >
-                    {param.key}
-                  </Button>
-                </TableCell>
-                <TableCell>{param.defaultValue}</TableCell>
-                <TableCell>
-                  <Button 
-                    variant="link" 
-                    className="h-auto p-0"
-                    onClick={() => navigate(`/nodes/${param.nodeId}`)}
-                  >
-                    {param.parentNode}
-                  </Button>
-                </TableCell>
-                <TableCell>
-                  {getStatusBadge(param.nodeStatus)}
-                </TableCell>
-                <TableCell>{param.updatedBy}</TableCell>
-                <TableCell>{param.updatedAt}</TableCell>
-                <TableCell className="text-right">
-                  <div className="flex items-center justify-end space-x-2">
+      {viewMode === 'grid' ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredParameters.map((param) => (
+            <Card key={param.id} className="bg-card border-border">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-foreground text-sm flex items-center justify-between">
+                  {param.key}
+                  {param.nodeStatus === "deployed" 
+                    ? <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-200">🟢 Deployed</Badge>
+                    : <Badge variant="secondary" className="bg-red-100 text-red-800 border-red-200">🔴 Not Deployed</Badge>
+                  }
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="grid grid-cols-1 gap-2 text-xs">
+                  <div className="text-muted-foreground">
+                    <span className="font-medium">Default Value:</span> 
+                    <span className="ml-1 font-mono">{param.defaultValue}</span>
+                  </div>
+                  <div className="text-muted-foreground">
+                    <span className="font-medium">Type:</span> 
+                    <Badge variant="outline" className="ml-2 text-xs">{param.valueType}</Badge>
+                  </div>
+                  <div className="text-muted-foreground">
+                    <span className="font-medium">Parent Node:</span>
+                    <Button 
+                      variant="link" 
+                      className="h-auto p-0 ml-1 text-xs"
+                      onClick={() => navigate(`/nodes/${param.nodeId}`)}
+                    >
+                      {param.parentNode}
+                    </Button>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="text-muted-foreground">
+                    <span className="font-medium">Updated:</span> {param.updatedAt}
+                  </div>
+                  <div className="text-muted-foreground">
+                    <span className="font-medium">By:</span> {param.updatedBy}
+                  </div>
+                </div>
+                
+                <div className="pt-2 border-t border-border">
+                  <div className="text-xs font-medium text-foreground mb-2">Actions:</div>
+                  <div className="flex gap-2 flex-wrap">
                     <Button 
                       variant="outline" 
                       size="sm"
                       onClick={() => navigate(`/parameters/${param.id}`)}
                     >
-                      <Eye className="h-4 w-4" />
+                      <Eye className="h-3 w-3 mr-1" />
+                      View
                     </Button>
                     <Button variant="outline" size="sm">
-                      <Download className="h-4 w-4" />
+                      <Download className="h-3 w-3 mr-1" />
+                      Export
                     </Button>
                     <Button variant="outline" size="sm">
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-3 w-3 mr-1" />
+                      Delete
                     </Button>
                   </div>
-                </TableCell>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <div className="border rounded-lg">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Key</TableHead>
+                <TableHead>Default Value</TableHead>
+                <TableHead>Parent Node</TableHead>
+                <TableHead>Node Status</TableHead>
+                <TableHead>Updated By</TableHead>
+                <TableHead>Updated At</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+            </TableHeader>
+            <TableBody>
+              {filteredParameters.map((param) => (
+                <TableRow key={param.id}>
+                  <TableCell>
+                    <Button 
+                      variant="link" 
+                      className="h-auto p-0 font-medium"
+                      onClick={() => navigate(`/parameters/${param.id}`)}
+                    >
+                      {param.key}
+                    </Button>
+                  </TableCell>
+                  <TableCell>{param.defaultValue}</TableCell>
+                  <TableCell>
+                    <Button 
+                      variant="link" 
+                      className="h-auto p-0"
+                      onClick={() => navigate(`/nodes/${param.nodeId}`)}
+                    >
+                      {param.parentNode}
+                    </Button>
+                  </TableCell>
+                  <TableCell>
+                    {getStatusBadge(param.nodeStatus)}
+                  </TableCell>
+                  <TableCell>{param.updatedBy}</TableCell>
+                  <TableCell>{param.updatedAt}</TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end space-x-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => navigate(`/parameters/${param.id}`)}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button variant="outline" size="sm">
+                        <Download className="h-4 w-4" />
+                      </Button>
+                      <Button variant="outline" size="sm">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
     </div>
   );
 }

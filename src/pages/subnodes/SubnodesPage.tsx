@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Upload, Download, Settings, Trash2, Eye } from "lucide-react";
+import { Plus, Upload, Download, Settings, Trash2, Eye, Grid2X2, List } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -11,6 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 
 // Mock data for subnodes
@@ -47,6 +48,7 @@ const mockSubnodes = [
 export function SubnodesPage() {
   const [subnodes, setSubnodes] = useState(mockSubnodes);
   const [searchTerm, setSearchTerm] = useState("");
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const navigate = useNavigate();
 
   const filteredSubnodes = subnodes.filter(subnode =>
@@ -89,6 +91,24 @@ export function SubnodesPage() {
         </div>
         
         <div className="flex items-center space-x-2">
+          <div className="flex border border-border rounded-md">
+            <Button
+              onClick={() => setViewMode('grid')}
+              variant={viewMode === 'grid' ? 'default' : 'ghost'}
+              size="sm"
+              className="rounded-r-none"
+            >
+              <Grid2X2 className="h-4 w-4" />
+            </Button>
+            <Button
+              onClick={() => setViewMode('list')}
+              variant={viewMode === 'list' ? 'default' : 'ghost'}
+              size="sm"
+              className="rounded-l-none"
+            >
+              <List className="h-4 w-4" />
+            </Button>
+          </div>
           <Button variant="outline" size="sm">
             <Upload className="h-4 w-4 mr-2" />
             Import SubNode
@@ -100,67 +120,138 @@ export function SubnodesPage() {
         </div>
       </div>
 
-      <div className="border rounded-lg">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>SubNode Name</TableHead>
-              <TableHead>Parent Node</TableHead>
-              <TableHead>Script Name</TableHead>
-              <TableHead>Deployment Status</TableHead>
-              <TableHead>Created Date</TableHead>
-              <TableHead>Created By</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredSubnodes.map((subnode) => (
-              <TableRow key={subnode.id}>
-                <TableCell className="font-medium">{subnode.name}</TableCell>
-                <TableCell>
-                  <Badge variant="outline">{subnode.parentNode}</Badge>
-                </TableCell>
-                <TableCell className="font-mono text-sm">{subnode.scriptName}</TableCell>
-                <TableCell>
+      {viewMode === 'grid' ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredSubnodes.map((subnode) => (
+            <Card key={subnode.id} className="bg-card border-border">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-foreground text-sm flex items-center justify-between">
+                  {subnode.name}
                   <Badge 
                     variant={getDeploymentBadge(subnode.deployment).variant}
                     className={getDeploymentBadge(subnode.deployment).className}
                   >
                     {subnode.deployment === "deployed" ? "Deployed" : "Not Deployed"}
                   </Badge>
-                </TableCell>
-                <TableCell>{subnode.createdDate}</TableCell>
-                <TableCell>{subnode.createdBy}</TableCell>
-                <TableCell className="text-right">
-                  <div className="flex items-center justify-end space-x-2">
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="grid grid-cols-1 gap-2 text-xs">
+                  <div className="text-muted-foreground">
+                    <span className="font-medium">Parent Node:</span>
+                    <Badge variant="outline" className="ml-2">{subnode.parentNode}</Badge>
+                  </div>
+                  <div className="text-muted-foreground">
+                    <span className="font-medium">Script:</span> 
+                    <span className="font-mono ml-1">{subnode.scriptName}</span>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="text-muted-foreground">
+                    <span className="font-medium">Created:</span> {subnode.createdDate}
+                  </div>
+                  <div className="text-muted-foreground">
+                    <span className="font-medium">By:</span> {subnode.createdBy}
+                  </div>
+                </div>
+                
+                <div className="pt-2 border-t border-border">
+                  <div className="text-xs font-medium text-foreground mb-2">Actions:</div>
+                  <div className="flex gap-2 flex-wrap">
                     <Button 
                       variant="outline" 
                       size="sm"
                       onClick={() => navigate(`/subnodes/${subnode.id}`)}
                     >
-                      <Eye className="h-4 w-4" />
+                      <Eye className="h-3 w-3 mr-1" />
+                      View
                     </Button>
                     <Button 
                       variant="outline" 
                       size="sm"
                       onClick={() => handleExport(subnode)}
                     >
-                      <Download className="h-4 w-4" />
+                      <Download className="h-3 w-3 mr-1" />
+                      Export
                     </Button>
                     <Button 
                       variant="outline" 
                       size="sm" 
                       onClick={() => handleDelete(subnode.id)}
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-3 w-3 mr-1" />
+                      Delete
                     </Button>
                   </div>
-                </TableCell>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <div className="border rounded-lg">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>SubNode Name</TableHead>
+                <TableHead>Parent Node</TableHead>
+                <TableHead>Script Name</TableHead>
+                <TableHead>Deployment Status</TableHead>
+                <TableHead>Created Date</TableHead>
+                <TableHead>Created By</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+            </TableHeader>
+            <TableBody>
+              {filteredSubnodes.map((subnode) => (
+                <TableRow key={subnode.id}>
+                  <TableCell className="font-medium">{subnode.name}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline">{subnode.parentNode}</Badge>
+                  </TableCell>
+                  <TableCell className="font-mono text-sm">{subnode.scriptName}</TableCell>
+                  <TableCell>
+                    <Badge 
+                      variant={getDeploymentBadge(subnode.deployment).variant}
+                      className={getDeploymentBadge(subnode.deployment).className}
+                    >
+                      {subnode.deployment === "deployed" ? "Deployed" : "Not Deployed"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>{subnode.createdDate}</TableCell>
+                  <TableCell>{subnode.createdBy}</TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end space-x-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => navigate(`/subnodes/${subnode.id}`)}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleExport(subnode)}
+                      >
+                        <Download className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => handleDelete(subnode.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
     </div>
   );
 }
