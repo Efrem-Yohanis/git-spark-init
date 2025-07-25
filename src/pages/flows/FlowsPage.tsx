@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Upload, Download, Settings, Trash2, Eye } from "lucide-react";
+import { Plus, Upload, Download, Settings, Trash2, Eye, Grid, List } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -11,6 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -63,6 +64,7 @@ export function FlowsPage() {
   const [flows, setFlows] = useState(mockFlows);
   const [searchTerm, setSearchTerm] = useState("");
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [viewMode, setViewMode] = useState<"table" | "grid">("table");
   const navigate = useNavigate();
 
   const filteredFlows = flows.filter(flow =>
@@ -112,6 +114,22 @@ export function FlowsPage() {
         </div>
         
         <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-1 mr-4">
+            <Button 
+              variant={viewMode === "table" ? "default" : "outline"} 
+              size="sm"
+              onClick={() => setViewMode("table")}
+            >
+              <List className="h-4 w-4" />
+            </Button>
+            <Button 
+              variant={viewMode === "grid" ? "default" : "outline"} 
+              size="sm"
+              onClick={() => setViewMode("grid")}
+            >
+              <Grid className="h-4 w-4" />
+            </Button>
+          </div>
           <Button variant="outline" size="sm">
             <Upload className="h-4 w-4 mr-2" />
             Import Flow
@@ -123,42 +141,93 @@ export function FlowsPage() {
         </div>
       </div>
 
-      <div className="border rounded-lg">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Deployment</TableHead>
-              <TableHead>Created Date</TableHead>
-              <TableHead>Last Updated By</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredFlows.map((flow) => (
-              <TableRow key={flow.id}>
-                <TableCell className="font-medium">{flow.name}</TableCell>
-                <TableCell>
-                  <Badge 
-                    variant={getStatusBadge(flow.status).variant}
-                    className={getStatusBadge(flow.status).className}
-                  >
-                    {flow.status}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <Badge 
-                    variant={getDeploymentBadge(flow.deployment).variant}
-                    className={getDeploymentBadge(flow.deployment).className}
-                  >
-                    {flow.deployment === "deployed" ? "Deployed" : "Not Deployed"}
-                  </Badge>
-                </TableCell>
-                <TableCell>{flow.createdDate}</TableCell>
-                <TableCell>{flow.lastUpdatedBy}</TableCell>
-                <TableCell className="text-right">
-                  <div className="flex items-center justify-end space-x-2">
+      {viewMode === "table" ? (
+        <div className="border rounded-lg">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Deployment</TableHead>
+                <TableHead>Created Date</TableHead>
+                <TableHead>Last Updated By</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredFlows.map((flow) => (
+                <TableRow key={flow.id}>
+                  <TableCell className="font-medium">{flow.name}</TableCell>
+                  <TableCell>
+                    <Badge 
+                      variant={getStatusBadge(flow.status).variant}
+                      className={getStatusBadge(flow.status).className}
+                    >
+                      {flow.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge 
+                      variant={getDeploymentBadge(flow.deployment).variant}
+                      className={getDeploymentBadge(flow.deployment).className}
+                    >
+                      {flow.deployment === "deployed" ? "Deployed" : "Not Deployed"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>{flow.createdDate}</TableCell>
+                  <TableCell>{flow.lastUpdatedBy}</TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end space-x-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => navigate(`/flows/${flow.id}`)}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleExport(flow)}
+                      >
+                        <Download className="h-4 w-4" />
+                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="outline" size="sm">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Flow</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to delete "{flow.name}"? This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDelete(flow.id)}>
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredFlows.map((flow) => (
+            <Card key={flow.id} className="hover:shadow-lg transition-shadow">
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between">
+                  <CardTitle className="text-lg">{flow.name}</CardTitle>
+                  <div className="flex items-center space-x-2">
                     <Button 
                       variant="outline" 
                       size="sm"
@@ -195,12 +264,33 @@ export function FlowsPage() {
                       </AlertDialogContent>
                     </AlertDialog>
                   </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-muted-foreground">{flow.description}</p>
+                <div className="flex items-center gap-2">
+                  <Badge 
+                    variant={getStatusBadge(flow.status).variant}
+                    className={getStatusBadge(flow.status).className}
+                  >
+                    {flow.status}
+                  </Badge>
+                  <Badge 
+                    variant={getDeploymentBadge(flow.deployment).variant}
+                    className={getDeploymentBadge(flow.deployment).className}
+                  >
+                    {flow.deployment === "deployed" ? "Deployed" : "Not Deployed"}
+                  </Badge>
+                </div>
+                <div className="text-sm text-muted-foreground space-y-1">
+                  <p>Created: {flow.createdDate}</p>
+                  <p>Updated by: {flow.lastUpdatedBy}</p>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
       <CreateFlowDialog 
         open={showCreateDialog} 
