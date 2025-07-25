@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   ReactFlow,
   MiniMap,
@@ -90,6 +91,7 @@ const connectorOptions = {
 
 export function FlowEditor() {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [activeView, setActiveView] = useState<'flows' | 'create'>('create');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   
@@ -718,7 +720,7 @@ export function FlowEditor() {
                 Save Flow
               </Button>
               <Button 
-                onClick={() => setActiveView('flows')} 
+                onClick={() => navigate('/flows')} 
                 variant="outline"
               >
                 Back to Flows
