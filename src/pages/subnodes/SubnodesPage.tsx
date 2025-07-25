@@ -48,7 +48,7 @@ const mockSubnodes = [
 export function SubnodesPage() {
   const [subnodes, setSubnodes] = useState(mockSubnodes);
   const [searchTerm, setSearchTerm] = useState("");
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const navigate = useNavigate();
 
   const filteredSubnodes = subnodes.filter(subnode =>

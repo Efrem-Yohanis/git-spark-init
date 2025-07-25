@@ -42,7 +42,7 @@ const mockNodes = [
 export function NodesPage() {
   const [nodes, setNodes] = useState(mockNodes);
   const [searchTerm, setSearchTerm] = useState("");
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const navigate = useNavigate();
 
   const filteredNodes = nodes.filter(node =>

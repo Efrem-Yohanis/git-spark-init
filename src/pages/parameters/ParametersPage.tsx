@@ -77,7 +77,7 @@ export function ParametersPage() {
   const navigate = useNavigate();
   const [parameters] = useState(mockParameters);
   const [searchTerm, setSearchTerm] = useState("");
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
 
   const filteredParameters = parameters.filter(param =>
     param.key.toLowerCase().includes(searchTerm.toLowerCase()) ||

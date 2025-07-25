@@ -64,7 +64,7 @@ export function FlowsPage() {
   const [flows, setFlows] = useState(mockFlows);
   const [searchTerm, setSearchTerm] = useState("");
   const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [viewMode, setViewMode] = useState<"table" | "grid">("table");
+  const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const navigate = useNavigate();
 
   const filteredFlows = flows.filter(flow =>
@@ -114,18 +114,20 @@ export function FlowsPage() {
         </div>
         
         <div className="flex items-center space-x-2">
-          <div className="flex items-center space-x-1 mr-4">
-            <Button 
-              variant={viewMode === "table" ? "default" : "outline"} 
+          <div className="flex border border-border rounded-md">
+            <Button
+              onClick={() => setViewMode("list")}
+              variant={viewMode === "list" ? "default" : "ghost"}
               size="sm"
-              onClick={() => setViewMode("table")}
+              className="rounded-r-none"
             >
               <List className="h-4 w-4" />
             </Button>
-            <Button 
-              variant={viewMode === "grid" ? "default" : "outline"} 
-              size="sm"
+            <Button
               onClick={() => setViewMode("grid")}
+              variant={viewMode === "grid" ? "default" : "ghost"}
+              size="sm"
+              className="rounded-l-none"
             >
               <Grid className="h-4 w-4" />
             </Button>
@@ -141,7 +143,7 @@ export function FlowsPage() {
         </div>
       </div>
 
-      {viewMode === "table" ? (
+      {viewMode === "list" ? (
         <div className="border rounded-lg">
           <Table>
             <TableHeader>
