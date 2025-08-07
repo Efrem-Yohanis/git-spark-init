@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Node } from '@xyflow/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,7 +6,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Settings, Trash2, Play, Copy, Plus } from 'lucide-react';
+import { Settings, Trash2, Play, Copy, Plus, Square, ExternalLink } from 'lucide-react';
+import { subnodeService } from '@/services/subnodeService';
+import { toast } from 'sonner';
 
 interface PropertiesPanelProps {
   selectedNode: Node | null;
@@ -15,6 +17,39 @@ interface PropertiesPanelProps {
 }
 
 export function PropertiesPanel({ selectedNode, onUpdateNode, onDeleteNode }: PropertiesPanelProps) {
+  const [deployingSubnodes, setDeployingSubnodes] = useState<Set<string>>(new Set());
+
+  const handleSubnodeDeploy = async (subnodeId: string) => {
+    setDeployingSubnodes(prev => new Set(prev).add(subnodeId));
+    try {
+      await subnodeService.deploySubnode(subnodeId);
+      toast.success("Subnode deployed successfully");
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || "Failed to deploy subnode");
+    } finally {
+      setDeployingSubnodes(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(subnodeId);
+        return newSet;
+      });
+    }
+  };
+
+  const handleSubnodeUndeploy = async (subnodeId: string) => {
+    setDeployingSubnodes(prev => new Set(prev).add(subnodeId));
+    try {
+      await subnodeService.undeploySubnode(subnodeId);
+      toast.success("Subnode undeployed successfully");
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || "Failed to undeploy subnode");
+    } finally {
+      setDeployingSubnodes(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(subnodeId);
+        return newSet;
+      });
+    }
+  };
   if (!selectedNode) {
     return (
       <div className="w-80 bg-card border-l border-border shadow-sm flex items-center justify-center">
@@ -146,6 +181,79 @@ export function PropertiesPanel({ selectedNode, onUpdateNode, onDeleteNode }: Pr
           ) : (
             <div className="text-center py-4 text-muted-foreground text-sm">
               No parameters defined
+            </div>
+          )}
+        </div>
+
+        <Separator />
+
+        {/* SubNodes */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="font-medium text-foreground">SubNodes</h3>
+            <Button size="sm" variant="outline">
+              <Plus className="w-3 h-3 mr-1" />
+              Assign
+            </Button>
+          </div>
+
+          {selectedNode.data && (selectedNode.data as any).subnodes && (selectedNode.data as any).subnodes.length > 0 ? (
+            <div className="space-y-3">
+              {(selectedNode.data as any).subnodes.map((subnode: any) => (
+                <div key={subnode.id} className="p-3 bg-muted/50 rounded-lg space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="font-medium text-sm">{subnode.name}</div>
+                      <div className="text-xs text-muted-foreground">
+                        v{subnode.version || 1} • {subnode.parameters?.length || 0} params
+                      </div>
+                    </div>
+                    <Badge 
+                      variant={subnode.is_selected ? "default" : "secondary"}
+                      className="text-xs"
+                    >
+                      {subnode.is_selected ? "Selected" : "Available"}
+                    </Badge>
+                  </div>
+                  
+                  <div className="flex items-center gap-1">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-6 px-2 text-xs flex-1"
+                      onClick={() => handleSubnodeDeploy(subnode.id)}
+                      disabled={deployingSubnodes.has(subnode.id)}
+                    >
+                      <Play className="w-3 h-3 mr-1" />
+                      Deploy
+                    </Button>
+                    
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-6 px-2 text-xs flex-1"
+                      onClick={() => handleSubnodeUndeploy(subnode.id)}
+                      disabled={deployingSubnodes.has(subnode.id)}
+                    >
+                      <Square className="w-3 h-3 mr-1" />
+                      Stop
+                    </Button>
+                    
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-6 px-2 text-xs"
+                      onClick={() => window.open(`/subnodes/${subnode.id}`, '_blank')}
+                    >
+                      <ExternalLink className="w-3 h-3" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-4 text-muted-foreground text-sm">
+              No subnodes assigned
             </div>
           )}
         </div>

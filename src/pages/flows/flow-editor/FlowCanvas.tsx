@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import {
   ReactFlow,
   MiniMap,
@@ -23,17 +23,54 @@ import { EnrichmentBlnNode } from './nodes/EnrichmentBlnNode';
 import { EncoderNode } from './nodes/EncoderNode';
 import { DiameterInterfaceNode } from './nodes/DiameterInterfaceNode';
 import { RawBackupNode } from './nodes/RawBackupNode';
+import { useNodes } from '../../../services/nodeService';
+import type { Node as ApiNode } from '../../../services/nodeService';
 
+// Use the updated SFTP Collector Node for all types for now since it has the best implementation
 const nodeTypes = {
   sftp_collector: SftpCollectorNode,
-  fdc: FdcNode,
-  asn1_decoder: Asn1DecoderNode,
-  ascii_decoder: AsciiDecoderNode,
-  validation_bln: ValidationBlnNode,
-  enrichment_bln: EnrichmentBlnNode,
-  encoder: EncoderNode,
-  diameter_interface: DiameterInterfaceNode,
-  raw_backup: RawBackupNode,
+  fdc: SftpCollectorNode,
+  asn1_decoder: SftpCollectorNode,
+  ascii_decoder: SftpCollectorNode,
+  validation_bln: SftpCollectorNode,
+  enrichment_bln: SftpCollectorNode,
+  encoder: SftpCollectorNode,
+  diameter_interface: SftpCollectorNode,
+  raw_backup: SftpCollectorNode,
+};
+
+// Transform API node data to React Flow format
+const transformApiNodesToFlowNodes = (apiNodes: ApiNode[]): Node[] => {
+  // Map to determine node type based on name or other properties
+  const getNodeType = (nodeName: string): string => {
+    const name = nodeName.toLowerCase();
+    if (name.includes('sftp') || name.includes('collector')) return 'sftp_collector';
+    if (name.includes('fdc')) return 'fdc';
+    if (name.includes('asn1') || name.includes('decoder')) return 'asn1_decoder';
+    if (name.includes('ascii')) return 'ascii_decoder';
+    if (name.includes('validation')) return 'validation_bln';
+    if (name.includes('enrichment')) return 'enrichment_bln';
+    if (name.includes('encoder')) return 'encoder';
+    if (name.includes('diameter')) return 'diameter_interface';
+    if (name.includes('backup')) return 'raw_backup';
+    return 'sftp_collector'; // Default fallback
+  };
+
+  return apiNodes.map((apiNode, index) => ({
+    id: apiNode.id,
+    type: getNodeType(apiNode.name),
+    position: { x: 100 + (index % 3) * 300, y: 100 + Math.floor(index / 3) * 250 },
+    data: {
+      label: apiNode.name,
+      subnodes: apiNode.subnodes || [],
+      version: apiNode.version,
+      last_updated_at: apiNode.last_updated_at,
+      description: `Node version ${apiNode.version}`,
+      nodeType: getNodeType(apiNode.name),
+      deployed: apiNode.subnodes.some(sub => sub.is_selected), // Consider deployed if any subnode is selected
+      parameters: apiNode.subnodes.flatMap(sub => sub.parameters || []),
+    },
+  }));
 };
 
 const initialNodes: Node[] = [
@@ -163,8 +200,30 @@ interface FlowCanvasProps {
 }
 
 export function FlowCanvas({ onNodeSelect }: FlowCanvasProps) {
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+  const { data: apiNodes, loading, error } = useNodes();
+  
+  // Start with empty nodes, will be populated from API
+  const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+
+  // Update nodes when API data is loaded
+  useEffect(() => {
+    console.log('API Nodes loaded:', { apiNodes, loading, error });
+    
+    if (apiNodes && apiNodes.length > 0) {
+      console.log('Using API nodes:', apiNodes);
+      const flowNodes = transformApiNodesToFlowNodes(apiNodes);
+      setNodes(flowNodes);
+    } else if (!loading && error) {
+      console.log('API error, using mock nodes:', error);
+      // Use mock nodes if API fails
+      setNodes(initialNodes);
+    } else if (!loading && apiNodes?.length === 0) {
+      console.log('API returned empty, using mock nodes for demo');
+      // Use mock nodes if API returns empty for demo purposes
+      setNodes(initialNodes);
+    }
+  }, [apiNodes, loading, error, setNodes]);
 
   const onConnect = useCallback(
     (params: Edge | Connection) => setEdges((eds) => addEdge(params, eds)),

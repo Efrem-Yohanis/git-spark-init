@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Upload, Download, Settings, Trash2, Eye, Grid2X2, List } from "lucide-react";
+import { Plus, Upload, Download, Settings, Trash2, Eye, Grid2X2, List, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -13,59 +13,57 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
-
-// Mock data for subnodes
-const mockSubnodes = [
-  {
-    id: "1",
-    name: "PostgreSQL Connector",
-    parentNode: "Database Source",
-    scriptName: "postgres_connect.py",
-    deployment: "deployed",
-    createdDate: "2024-01-15",
-    createdBy: "John Doe",
-  },
-  {
-    id: "2", 
-    name: "CSV Parser",
-    parentNode: "Data Transform",
-    scriptName: "csv_parser.py",
-    deployment: "not_deployed",
-    createdDate: "2024-01-10",
-    createdBy: "Jane Smith",
-  },
-  {
-    id: "3",
-    name: "S3 Uploader",
-    parentNode: "File Output",
-    scriptName: "s3_upload.py",
-    deployment: "deployed",
-    createdDate: "2024-01-05",
-    createdBy: "Bob Johnson",
-  },
-];
+import { useSubnodes, subnodeService } from "@/services/subnodeService";
+import { toast } from "sonner";
 
 export function SubnodesPage() {
-  const [subnodes, setSubnodes] = useState(mockSubnodes);
+  const { data: subnodes, loading, error, refetch } = useSubnodes();
   const [searchTerm, setSearchTerm] = useState("");
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const navigate = useNavigate();
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading subnodes...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <p className="text-destructive mb-4">Error loading subnodes: {error}</p>
+          <Button onClick={() => refetch()}>Try Again</Button>
+        </div>
+      </div>
+    );
+  }
+
   const filteredSubnodes = subnodes.filter(subnode =>
     subnode.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    subnode.parentNode.toLowerCase().includes(searchTerm.toLowerCase())
+    subnode.node.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const getDeploymentBadge = (deployment: string) => {
-    const variants: Record<string, { variant: "default" | "secondary" | "destructive" | "outline", className: string }> = {
-      deployed: { variant: "default", className: "bg-node-deployed text-white" },
-      not_deployed: { variant: "outline", className: "text-node-undeployed border-node-undeployed" },
-    };
-    return variants[deployment] || { variant: "outline", className: "" };
+  const getDeploymentBadge = (isSelected: boolean) => {
+    return isSelected 
+      ? { variant: "default" as const, className: "bg-node-deployed text-white" }
+      : { variant: "outline" as const, className: "text-node-undeployed border-node-undeployed" };
   };
 
-  const handleDelete = (subnodeId: string) => {
-    setSubnodes(subnodes.filter(subnode => subnode.id !== subnodeId));
+  const handleDelete = async (subnodeId: string) => {
+    try {
+      await subnodeService.deleteSubnode(subnodeId);
+      toast.success("Subnode deleted successfully");
+      refetch();
+    } catch (error) {
+      toast.error("Failed to delete subnode");
+      console.error("Delete error:", error);
+    }
   };
 
   const handleExport = (subnode: any) => {
@@ -76,6 +74,15 @@ export function SubnodesPage() {
     link.href = url;
     link.download = `${subnode.name}.json`;
     link.click();
+  };
+
+  const handleClone = (subnode: any) => {
+    // For now, just redirect to create page - clone functionality would need backend support
+    navigate(`/subnodes/create`);
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString();
   };
 
   return (
@@ -128,31 +135,31 @@ export function SubnodesPage() {
                 <CardTitle className="text-foreground text-sm flex items-center justify-between">
                   {subnode.name}
                   <Badge 
-                    variant={getDeploymentBadge(subnode.deployment).variant}
-                    className={getDeploymentBadge(subnode.deployment).className}
+                    variant={getDeploymentBadge(subnode.is_selected).variant}
+                    className={getDeploymentBadge(subnode.is_selected).className}
                   >
-                    {subnode.deployment === "deployed" ? "Deployed" : "Not Deployed"}
+                    {subnode.is_selected ? "Selected" : "Not Selected"}
                   </Badge>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="grid grid-cols-1 gap-2 text-xs">
                   <div className="text-muted-foreground">
-                    <span className="font-medium">Parent Node:</span>
-                    <Badge variant="outline" className="ml-2">{subnode.parentNode}</Badge>
+                    <span className="font-medium">Node ID:</span>
+                    <Badge variant="outline" className="ml-2">{subnode.node}</Badge>
                   </div>
                   <div className="text-muted-foreground">
-                    <span className="font-medium">Script:</span> 
-                    <span className="font-mono ml-1">{subnode.scriptName}</span>
+                    <span className="font-medium">Version:</span> 
+                    <span className="ml-1">{subnode.version}</span>
                   </div>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div className="text-muted-foreground">
-                    <span className="font-medium">Created:</span> {subnode.createdDate}
+                    <span className="font-medium">Created:</span> {formatDate(subnode.created_at)}
                   </div>
                   <div className="text-muted-foreground">
-                    <span className="font-medium">By:</span> {subnode.createdBy}
+                    <span className="font-medium">Updated:</span> {formatDate(subnode.updated_at)}
                   </div>
                 </div>
                 
@@ -177,6 +184,14 @@ export function SubnodesPage() {
                     </Button>
                     <Button 
                       variant="outline" 
+                      size="sm"
+                      onClick={() => handleClone(subnode)}
+                    >
+                      <Copy className="h-3 w-3 mr-1" />
+                      Clone
+                    </Button>
+                    <Button 
+                      variant="outline" 
                       size="sm" 
                       onClick={() => handleDelete(subnode.id)}
                     >
@@ -195,11 +210,11 @@ export function SubnodesPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>SubNode Name</TableHead>
-                <TableHead>Parent Node</TableHead>
-                <TableHead>Script Name</TableHead>
-                <TableHead>Deployment Status</TableHead>
+                <TableHead>Node ID</TableHead>
+                <TableHead>Version</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead>Created Date</TableHead>
-                <TableHead>Created By</TableHead>
+                <TableHead>Updated Date</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -208,19 +223,19 @@ export function SubnodesPage() {
                 <TableRow key={subnode.id}>
                   <TableCell className="font-medium">{subnode.name}</TableCell>
                   <TableCell>
-                    <Badge variant="outline">{subnode.parentNode}</Badge>
+                    <Badge variant="outline">{subnode.node}</Badge>
                   </TableCell>
-                  <TableCell className="font-mono text-sm">{subnode.scriptName}</TableCell>
+                  <TableCell className="text-sm">{subnode.version}</TableCell>
                   <TableCell>
                     <Badge 
-                      variant={getDeploymentBadge(subnode.deployment).variant}
-                      className={getDeploymentBadge(subnode.deployment).className}
+                      variant={getDeploymentBadge(subnode.is_selected).variant}
+                      className={getDeploymentBadge(subnode.is_selected).className}
                     >
-                      {subnode.deployment === "deployed" ? "Deployed" : "Not Deployed"}
+                      {subnode.is_selected ? "Selected" : "Not Selected"}
                     </Badge>
                   </TableCell>
-                  <TableCell>{subnode.createdDate}</TableCell>
-                  <TableCell>{subnode.createdBy}</TableCell>
+                  <TableCell>{formatDate(subnode.created_at)}</TableCell>
+                  <TableCell>{formatDate(subnode.updated_at)}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end space-x-2">
                       <Button 
@@ -236,6 +251,13 @@ export function SubnodesPage() {
                         onClick={() => handleExport(subnode)}
                       >
                         <Download className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleClone(subnode)}
+                      >
+                        <Copy className="h-4 w-4" />
                       </Button>
                       <Button 
                         variant="outline" 
