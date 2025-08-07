@@ -34,20 +34,33 @@ export function CreateFlowDialog({ open, onOpenChange }: CreateFlowDialogProps) 
     setIsLoading(true);
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Generate a mock flow ID
-      const flowId = Date.now().toString();
+      // Create flow using the documented API
+      const response = await fetch('/flow/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: flowName.trim(),
+          description: flowDescription.trim(),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create flow');
+      }
+
+      const createdFlow = await response.json();
       
       toast.success("Flow created successfully!");
       onOpenChange(false);
       setFlowName("");
       setFlowDescription("");
       
-      // Navigate to flow editor with the new flow ID
-      navigate(`/flows/${flowId}/edit`, { state: { flowName, flowDescription, isEmpty: true } });
+      // Navigate to flow editor with the actual flow ID from API
+      navigate(`/flows/${createdFlow.id}/edit`);
     } catch (error) {
+      console.error('Error creating flow:', error);
       toast.error("Failed to create flow");
     } finally {
       setIsLoading(false);
