@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { flowService } from "@/services/flowService";
 
 interface CreateFlowDialogProps {
   open: boolean;
@@ -34,23 +35,11 @@ export function CreateFlowDialog({ open, onOpenChange }: CreateFlowDialogProps) 
     setIsLoading(true);
     
     try {
-      // Create flow using the documented API
-      const response = await fetch('/flow/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: flowName.trim(),
-          description: flowDescription.trim(),
-        }),
+      // Create flow using the flow service
+      const createdFlow = await flowService.createFlow({
+        name: flowName.trim(),
+        description: flowDescription.trim(),
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to create flow');
-      }
-
-      const createdFlow = await response.json();
       
       toast.success("Flow created successfully!");
       onOpenChange(false);

@@ -3,7 +3,7 @@ import axios from 'axios';
 
 // Create an Axios instance
 const axiosInstance = axios.create({
-  baseURL: 'http://127.0.0.1:8000/',
+  baseURL: 'http://127.0.0.1:8000/api/',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -72,13 +72,13 @@ export interface DeployedNode {
 export const flowService = {
   // Create a new flow
   async createFlow(data: { name: string; description: string }): Promise<Flow> {
-    const response = await axiosInstance.post('flow/', data);
+    const response = await axiosInstance.post('flows/', data);
     return response.data;
   },
 
   // Get deployed nodes for flow editor
   async getDeployedNodes(): Promise<DeployedNode[]> {
-    const response = await axiosInstance.get('api/nodes/');
+    const response = await axiosInstance.get('nodes/');
     return response.data;
   },
 
@@ -90,37 +90,37 @@ export const flowService = {
 
   // Get flow details
   async getFlow(id: string): Promise<Flow> {
-    const response = await axiosInstance.get(`api/flows/${id}/`);
+    const response = await axiosInstance.get(`flows/${id}/`);
     return response.data;
   },
 
   // Update flow
   async updateFlow(id: string, data: Partial<Flow>): Promise<Flow> {
-    const response = await axiosInstance.put(`api/flows/${id}/`, data);
+    const response = await axiosInstance.put(`flows/${id}/`, data);
     return response.data;
   },
 
   // Start flow
   async startFlow(id: string): Promise<{ status: string }> {
-    const response = await axiosInstance.post(`api/flows/${id}/start/`);
+    const response = await axiosInstance.post(`flows/${id}/start/`);
     return response.data;
   },
 
   // Stop flow
   async stopFlow(id: string): Promise<{ status: string }> {
-    const response = await axiosInstance.post(`api/flows/${id}/stop/`);
+    const response = await axiosInstance.post(`flows/${id}/stop/`);
     return response.data;
   },
 
   // Deploy flow
   async deployFlow(id: string): Promise<{ status: string }> {
-    const response = await axiosInstance.post(`api/flows/${id}/deploy/`);
+    const response = await axiosInstance.post(`flows/${id}/deploy/`);
     return response.data;
   },
 
   // Undeploy flow
   async undeployFlow(id: string): Promise<{ status: string }> {
-    const response = await axiosInstance.post(`api/flows/${id}/undeploy/`);
+    const response = await axiosInstance.post(`flows/${id}/undeploy/`);
     return response.data;
   },
 };
