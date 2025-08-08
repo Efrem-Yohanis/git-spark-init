@@ -62,6 +62,7 @@ interface NodeData extends Record<string, unknown> {
   config?: Record<string, any>;
   connector?: string;
   connectorOptions?: string[];
+  nodeId?: string; // Add nodeId to track original node for subnode lookup
 }
 
 interface CustomNodeProps {
@@ -210,7 +211,8 @@ export function FlowEditor() {
           description: nodeData.description || 'Node from API',
           config: {},
           connector: nodeData.subnodes?.find(s => s.is_selected)?.name || 'Default',
-          connectorOptions: nodeData.subnodes?.map(s => s.name) || ['Default']
+          connectorOptions: nodeData.subnodes?.map(s => s.name) || ['Default'],
+          nodeId: nodeId // Add the original node ID for subnode lookup
         },
       };
       setNodes((prev) => [...prev, newNode]);
