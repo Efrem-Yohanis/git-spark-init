@@ -30,39 +30,6 @@ interface SftpCollectorNodeProps {
 
 export const SftpCollectorNode = memo(({ data, selected }: SftpCollectorNodeProps) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [deployingSubnodes, setDeployingSubnodes] = useState<Set<string>>(new Set());
-
-  const handleSubnodeDeploy = async (subnodeId: string) => {
-    setDeployingSubnodes(prev => new Set(prev).add(subnodeId));
-    try {
-      await subnodeService.deploySubnode(subnodeId);
-      toast.success("Subnode deployed successfully");
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || "Failed to deploy subnode");
-    } finally {
-      setDeployingSubnodes(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(subnodeId);
-        return newSet;
-      });
-    }
-  };
-
-  const handleSubnodeUndeploy = async (subnodeId: string) => {
-    setDeployingSubnodes(prev => new Set(prev).add(subnodeId));
-    try {
-      await subnodeService.undeploySubnode(subnodeId);
-      toast.success("Subnode undeployed successfully");
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || "Failed to undeploy subnode");
-    } finally {
-      setDeployingSubnodes(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(subnodeId);
-        return newSet;
-      });
-    }
-  };
 
   return (
     <div 
@@ -147,26 +114,11 @@ export const SftpCollectorNode = memo(({ data, selected }: SftpCollectorNodeProp
                       className="h-6 px-2 text-xs"
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleSubnodeDeploy(subnode.id);
+                        window.open(`/subnodes/${subnode.id}/edit`, '_blank');
                       }}
-                      disabled={deployingSubnodes.has(subnode.id)}
                     >
-                      <Play className="w-3 h-3 mr-1" />
-                      Deploy
-                    </Button>
-                    
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-6 px-2 text-xs"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleSubnodeUndeploy(subnode.id);
-                      }}
-                      disabled={deployingSubnodes.has(subnode.id)}
-                    >
-                      <Square className="w-3 h-3 mr-1" />
-                      Stop
+                      <Settings className="w-3 h-3 mr-1" />
+                      Edit
                     </Button>
                     
                     <Button

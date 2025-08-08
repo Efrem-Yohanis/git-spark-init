@@ -17,39 +17,6 @@ interface PropertiesPanelProps {
 }
 
 export function PropertiesPanel({ selectedNode, onUpdateNode, onDeleteNode }: PropertiesPanelProps) {
-  const [deployingSubnodes, setDeployingSubnodes] = useState<Set<string>>(new Set());
-
-  const handleSubnodeDeploy = async (subnodeId: string) => {
-    setDeployingSubnodes(prev => new Set(prev).add(subnodeId));
-    try {
-      await subnodeService.deploySubnode(subnodeId);
-      toast.success("Subnode deployed successfully");
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || "Failed to deploy subnode");
-    } finally {
-      setDeployingSubnodes(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(subnodeId);
-        return newSet;
-      });
-    }
-  };
-
-  const handleSubnodeUndeploy = async (subnodeId: string) => {
-    setDeployingSubnodes(prev => new Set(prev).add(subnodeId));
-    try {
-      await subnodeService.undeploySubnode(subnodeId);
-      toast.success("Subnode undeployed successfully");
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || "Failed to undeploy subnode");
-    } finally {
-      setDeployingSubnodes(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(subnodeId);
-        return newSet;
-      });
-    }
-  };
   if (!selectedNode) {
     return (
       <div className="w-80 bg-card border-l border-border shadow-sm flex items-center justify-center">
@@ -221,22 +188,10 @@ export function PropertiesPanel({ selectedNode, onUpdateNode, onDeleteNode }: Pr
                       size="sm"
                       variant="outline"
                       className="h-6 px-2 text-xs flex-1"
-                      onClick={() => handleSubnodeDeploy(subnode.id)}
-                      disabled={deployingSubnodes.has(subnode.id)}
+                      onClick={() => window.open(`/subnodes/${subnode.id}/edit`, '_blank')}
                     >
-                      <Play className="w-3 h-3 mr-1" />
-                      Deploy
-                    </Button>
-                    
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-6 px-2 text-xs flex-1"
-                      onClick={() => handleSubnodeUndeploy(subnode.id)}
-                      disabled={deployingSubnodes.has(subnode.id)}
-                    >
-                      <Square className="w-3 h-3 mr-1" />
-                      Stop
+                      <Settings className="w-3 h-3 mr-1" />
+                      Edit
                     </Button>
                     
                     <Button

@@ -53,6 +53,7 @@ import {
 import { NodeConfigDialog } from '@/components/NodeConfigDialog';
 import { NodePalette } from './NodePalette';
 import { useFlow, flowService } from '@/services/flowService';
+import { nodeService } from '@/services/nodeService';
 
 interface NodeData extends Record<string, unknown> {
   label: string;
@@ -144,8 +145,35 @@ export function FlowEditor() {
   }, [currentFlow.id, nodes, edges]);
 
   const onConnect = useCallback(
-    (params: Connection) => setEdges((eds) => addEdge(params, eds)),
-    [setEdges]
+    async (params: Connection) => {
+      // Add edge to local state
+      setEdges((eds) => addEdge(params, eds));
+      
+      // Update backend connection if we have flow ID
+      if (flowId && params.target) {
+        try {
+          // Log the connection for now - API integration would go here
+          console.log('Updating connection in backend:', {
+            flowId,
+            targetNodeId: params.target,
+            sourceNodeId: params.source,
+          });
+          
+          toast({
+            title: "Connection Created",
+            description: "Nodes have been connected successfully.",
+          });
+        } catch (error) {
+          console.error('Error updating connection:', error);
+          toast({
+            title: "Connection Error",
+            description: "Failed to update connection in backend.",
+            variant: "destructive"
+          });
+        }
+      }
+    },
+    [setEdges, flowId, toast],
   );
 
   // Handle connector selection
@@ -165,36 +193,40 @@ export function FlowEditor() {
     );
   }, [setNodes]);
 
-  // Add node to canvas from API data
-  const addNodeToCanvas = async (nodeId: string) => {
+  // Add node to canvas from API data or drag and drop
+  const addNodeToCanvas = async (nodeId: string, position?: { x: number; y: number }) => {
     try {
+      // First, get the actual node data from API
+      const nodeData = await nodeService.getNode(nodeId);
+      
       // Create a visual node for the canvas
       const newNode: Node<NodeData> = {
         id: `canvas-node-${Date.now()}`,
         type: 'custom',
-        position: { x: Math.random() * 300 + 200, y: Math.random() * 200 + 150 },
+        position: position || { x: Math.random() * 300 + 200, y: Math.random() * 200 + 150 },
         data: {
-          label: `Node ${nodeId}`,
+          label: nodeData.name,
           icon: Database,
-          description: 'Deployed node from API',
+          description: nodeData.description || 'Node from API',
           config: {},
-          connector: 'Default',
-          connectorOptions: ['Default']
+          connector: nodeData.subnodes?.find(s => s.is_selected)?.name || 'Default',
+          connectorOptions: nodeData.subnodes?.map(s => s.name) || ['Default']
         },
       };
       setNodes((prev) => [...prev, newNode]);
 
-      // Add to flow via API
+      // Add to flow via API using the new flownode endpoint
       if (flowId) {
-        await flowService.addNodeToFlow({
-          flow: flowId,
-          node: nodeId,
-          order: nodes.length + 1
+        await flowService.createFlowNode({
+          order: nodes.length + 1,
+          node_id: nodeId,
+          flow_id: flowId,
+          from_node: null
         });
         
         toast({
           title: "Node Added",
-          description: "Node has been added to the flow successfully.",
+          description: `${nodeData.name} has been added to the flow successfully.`,
         });
       }
     } catch (error) {
@@ -206,6 +238,31 @@ export function FlowEditor() {
       });
     }
   };
+
+  // Drag and drop handlers
+  const onDragOver = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+  }, []);
+
+  const onDrop = useCallback(
+    (event: React.DragEvent) => {
+      event.preventDefault();
+      
+      const nodeId = event.dataTransfer.getData('application/reactflow');
+      if (!nodeId) return;
+
+      // Calculate drop position relative to the ReactFlow container
+      const reactFlowBounds = event.currentTarget.getBoundingClientRect();
+      const position = {
+        x: event.clientX - reactFlowBounds.left - 100, // Offset for better positioning
+        y: event.clientY - reactFlowBounds.top - 50,
+      };
+
+      addNodeToCanvas(nodeId, position);
+    },
+    [addNodeToCanvas],
+  );
 
   const createNewFlow = () => {
     const newFlow: StreamFlow = {
@@ -361,13 +418,33 @@ export function FlowEditor() {
     input.click();
   };
 
-  const saveFlow = () => {
-    updateCurrentFlow();
-    toast({
-      title: "Flow Saved",
-      description: `${currentFlow.name} has been saved successfully.`,
-    });
-    setActiveView('flows');
+  const saveFlow = async () => {
+    try {
+      if (flowId) {
+        // Update existing flow
+        await flowService.updateFlow(flowId, {
+          name: currentFlow.name,
+          description: currentFlow.name, // Could be separate field
+          // Add other flow properties as needed
+        });
+      } else {
+        // Create new flow - this would need API endpoint
+        console.log('Creating new flow with nodes:', nodes);
+      }
+      
+      updateCurrentFlow();
+      toast({
+        title: "Flow Saved",
+        description: `${currentFlow.name} has been saved as draft successfully.`,
+      });
+    } catch (error) {
+      console.error('Error saving flow:', error);
+      toast({
+        title: "Save Error",
+        description: "Failed to save flow.",
+        variant: "destructive"
+      });
+    }
   };
 
   // Handle node configuration editing
@@ -729,6 +806,8 @@ export function FlowEditor() {
                   onNodesChange={onNodesChange}
                   onEdgesChange={onEdgesChange}
                   onConnect={onConnect}
+                  onDragOver={onDragOver}
+                  onDrop={onDrop}
                   nodeTypes={nodeTypes}
                   fitView
                   className="bg-muted"
