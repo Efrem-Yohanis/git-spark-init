@@ -1,276 +1,297 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { 
-  Edit, 
-  Upload,
-  Eye,
-  FileText,
-  History
-} from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import axios from "axios";
-
-interface NodeDetail {
-  id: string;
-  name: string;
-  version: number;
-  created_at: string;
-  updated_at: string;
-  last_updated_by: string | null;
-  last_updated_at: string;
-  subnodes: {
-    id: string;
-    name: string;
-    version: number;
-    is_selected: boolean;
-    parameters: {
-      id: string;
-      node: string;
-      key: string;
-      default_value: string;
-      required: boolean;
-      last_updated_by: string | null;
-      last_updated_at: string;
-    }[];
-  }[];
-}
+import { nodeService, type Node, type NodeVersion } from "@/services/nodeService";
+import { parameterService, type Parameter } from "@/services/parameterService";
+import { NodeHeader } from "./components/NodeHeader";
+import { NodeSummary } from "./components/NodeSummary";
+import { PropertiesSection } from "./components/PropertiesSection";
+import { SubnodesSection } from "./components/SubnodesSection";
+import { VersionHistoryModal } from "./components/VersionHistoryModal";
 
 export function NodeDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [node, setNode] = useState<NodeDetail | null>(null);
+  
+  const [node, setNode] = useState<Node | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showVersionDialog, setShowVersionDialog] = useState(false);
+  
+  // Version management
+  const [nodeVersions, setNodeVersions] = useState<NodeVersion[]>([]);
+  const [selectedVersion, setSelectedVersion] = useState<NodeVersion | null>(null);
+  const [nodeVersionsLoading, setNodeVersionsLoading] = useState(false);
+  const [versionHistoryOpen, setVersionHistoryOpen] = useState(false);
+
+  // Parameters management
+  const [nodeParameters, setNodeParameters] = useState<Parameter[]>([]);
+  const [parametersLoading, setParametersLoading] = useState(false);
 
   useEffect(() => {
-    if (id) {
-      fetchNode();
-    }
-  }, [id]);
+    const fetchNode = async () => {
+      if (!id) return;
+      
+      try {
+        const nodeData = await nodeService.getNode(id);
+        setNode(nodeData);
+        
+        // Fetch initial data
+        await Promise.all([
+          fetchNodeVersions(),
+          fetchNodeParameters()
+        ]);
+      } catch (err: any) {
+        console.error("Error fetching node:", err);
+        setError(err.response?.data?.error || err.message || "Error fetching node");
+        toast({
+          title: "Error",
+          description: "Failed to load node details",
+          variant: "destructive"
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const fetchNode = async () => {
+    fetchNode();
+  }, [id, toast]);
+
+  // Fetch node versions
+  const fetchNodeVersions = async () => {
+    if (!id) return;
+    
+    setNodeVersionsLoading(true);
     try {
-      setLoading(true);
-      const response = await axios.get(`http://127.0.0.1:8000/api/nodes/${id}/`);
-      setNode(response.data);
+      const versions = await nodeService.getNodeVersions(id);
+      setNodeVersions(versions);
+      
+      // Set selected version to active version or latest
+      const activeVersion = versions.find(v => v.is_active) || versions[0];
+      setSelectedVersion(activeVersion);
     } catch (err: any) {
-      const errorMessage = err.response?.data?.error || err.message || "Failed to fetch node";
-      setError(errorMessage);
+      console.error('Error fetching node versions:', err);
       toast({
-        title: "Error Loading Node",
-        description: errorMessage,
-        variant: "destructive",
+        title: "Error",
+        description: "Failed to load node versions",
+        variant: "destructive"
       });
     } finally {
-      setLoading(false);
+      setNodeVersionsLoading(false);
     }
   };
 
-  const handleEdit = () => {
-    navigate(`/nodes/${id}/edit`);
+  // Fetch node parameters
+  const fetchNodeParameters = async () => {
+    if (!id) return;
+    
+    setParametersLoading(true);
+    try {
+      const parameters = await nodeService.getNodeParameters(id);
+      setNodeParameters(parameters);
+    } catch (err: any) {
+      console.error('Error fetching node parameters:', err);
+      toast({
+        title: "Error",
+        description: "Failed to load node parameters",
+        variant: "destructive"
+      });
+    } finally {
+      setParametersLoading(false);
+    }
   };
 
-  const handleVersionHistory = () => {
-    navigate(`/nodes/${id}/versions`);
+  // Event handlers
+  const handleEditVersion = () => {
+    if (selectedVersion && !selectedVersion.is_active) {
+      navigate(`/nodes/${id}/edit?version=${selectedVersion.version}`);
+    }
   };
+
+  const handleCreateNewVersion = () => {
+    navigate(`/nodes/${id}/edit?newVersion=true`);
+  };
+
+  const handleToggleDeployment = async () => {
+    if (!selectedVersion || !id) return;
+    
+    try {
+      if (selectedVersion.is_active) {
+        // For now, just show a message that deactivation would happen
+        toast({
+          title: "Toggle Deployment",
+          description: `Version ${selectedVersion.version} deployment would be toggled`,
+        });
+      } else {
+        // Deploy/activate version
+        await nodeService.activateNodeVersion(id, selectedVersion.version);
+        toast({
+          title: "Version Deployed",
+          description: `Node version ${selectedVersion.version} is now deployed`,
+        });
+        
+        // Refresh versions
+        await fetchNodeVersions();
+        
+        // Refresh node data
+        const updatedNode = await nodeService.getNode(id);
+        setNode(updatedNode);
+      }
+      
+    } catch (err: any) {
+      console.error('Error toggling version deployment:', err);
+      toast({
+        title: "Error",
+        description: "Failed to update version deployment status",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleShowVersionHistory = () => {
+    setVersionHistoryOpen(true);
+    if (nodeVersions.length === 0) {
+      fetchNodeVersions();
+    }
+  };
+
+  const handleViewVersion = (version: NodeVersion) => {
+    setSelectedVersion(version);
+    setVersionHistoryOpen(false);
+    toast({
+      title: "Version Selected",
+      description: `Now viewing version ${version.version}`,
+    });
+  };
+
+  const activateNodeVersion = async (version: number) => {
+    if (!id) return;
+    
+    try {
+      await nodeService.activateNodeVersion(id, version);
+      
+      // Update versions state
+      setNodeVersions(prevVersions => 
+        prevVersions.map(v => ({
+          ...v,
+          is_active: v.version === version
+        }))
+      );
+      
+      // Update selected version
+      const activatedVersion = nodeVersions.find(v => v.version === version);
+      if (activatedVersion) {
+        setSelectedVersion({ ...activatedVersion, is_active: true });
+      }
+      
+      // Refresh node data
+      const updatedNode = await nodeService.getNode(id);
+      setNode(updatedNode);
+      
+      toast({
+        title: "Version Activated",
+        description: `Node version ${version} is now active`,
+      });
+      
+      setVersionHistoryOpen(false);
+    } catch (err: any) {
+      console.error('Error activating node version:', err);
+      toast({
+        title: "Error",
+        description: "Failed to activate version",
+        variant: "destructive"
+      });
+    }
+  };
+
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p>Loading node details...</p>
-        </div>
+      <div className="flex items-center justify-center h-96">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     );
   }
 
-  if (error || !node) {
+  if (error) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <p className="text-red-500 mb-4">Error: {error || "Node not found"}</p>
-          <Button onClick={fetchNode}>Try Again</Button>
-        </div>
+      <div className="text-center py-8">
+        <p className="text-destructive">Error: {error}</p>
+        <Button onClick={() => navigate('/nodes')} className="mt-4">
+          Back to Nodes
+        </Button>
       </div>
     );
   }
+
+  if (!node) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-muted-foreground">Node not found</p>
+        <Button onClick={() => navigate('/nodes')} className="mt-4">
+          Back to Nodes
+        </Button>
+      </div>
+    );
+  }
+
 
   return (
     <div className="space-y-6">
       {/* Header Section */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">📦 {node.name}</h1>
-            <div className="flex items-center space-x-3 mt-2">
-              <Badge variant="outline">v{node.version}</Badge>
-            </div>
-          </div>
-          
-          <div className="flex items-center space-x-2">
-            <Button variant="outline" onClick={handleEdit}>
-              <Edit className="h-4 w-4 mr-2" />
-              Edit
-            </Button>
-            
-            <Button variant="outline" onClick={handleVersionHistory}>
-              <History className="h-4 w-4 mr-2" />
-              Version History
-            </Button>
-          </div>
-        </div>
-        
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-          <div>
-            <h4 className="font-medium text-muted-foreground">Last Updated By</h4>
-            <p className="font-medium">{node.last_updated_by || "System"}</p>
-          </div>
-          <div>
-            <h4 className="font-medium text-muted-foreground">Last Updated At</h4>
-            <p className="font-medium">{new Date(node.last_updated_at).toLocaleString()}</p>
-          </div>
-          <div>
-            <h4 className="font-medium text-muted-foreground">Parameters</h4>
-            <p className="font-medium">{node.subnodes.reduce((total, subnode) => total + subnode.parameters.length, 0)}</p>
-          </div>
-          <div>
-            <h4 className="font-medium text-muted-foreground">Subnodes</h4>
-            <p className="font-medium">{node.subnodes.length}</p>
-          </div>
-        </div>
-      </div>
+      <NodeHeader
+        node={node}
+        selectedVersion={selectedVersion}
+        onEditVersion={handleEditVersion}
+        onToggleDeployment={handleToggleDeployment}
+        onCreateNewVersion={handleCreateNewVersion}
+        onShowVersionHistory={handleShowVersionHistory}
+        isLoading={loading}
+      />
 
+      <Separator />
 
-      {/* Parameters Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Parameters ({node.subnodes.reduce((total, subnode) => total + subnode.parameters.length, 0)})</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Key</TableHead>
-                <TableHead>Default Value</TableHead>
-                <TableHead>Required</TableHead>
-                <TableHead>Subnode</TableHead>
-                <TableHead>Last Updated</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {node.subnodes.flatMap(subnode => 
-                subnode.parameters.map((param) => (
-                  <TableRow key={param.id}>
-                    <TableCell className="font-medium">{param.key}</TableCell>
-                    <TableCell>{param.default_value}</TableCell>
-                    <TableCell>
-                      <Badge variant={param.required ? "default" : "secondary"}>
-                        {param.required ? "Required" : "Optional"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Button 
-                        variant="link" 
-                        size="sm"
-                        onClick={() => navigate(`/subnodes/${subnode.id}`)}
-                        className="h-auto p-0"
-                      >
-                        {subnode.name}
-                      </Button>
-                    </TableCell>
-                    <TableCell>{new Date(param.last_updated_at).toLocaleDateString()}</TableCell>
-                    <TableCell className="text-right">
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => navigate(`/parameters/${param.id}`)}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      {/* Node Detail Section */}
+      <NodeSummary
+        node={node}
+        selectedVersion={selectedVersion}
+        propertiesCount={nodeParameters.length}
+        subnodesCount={node.subnodes?.length || 0}
+      />
+
+      <Separator />
+
+      {/* Properties Section */}
+      <PropertiesSection
+        properties={nodeParameters}
+        loading={parametersLoading}
+      />
+
+      <Separator />
 
       {/* Subnodes Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Subnodes ({node.subnodes.length})</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Subnode Name</TableHead>
-                <TableHead>Version</TableHead>
-                <TableHead>Selected</TableHead>
-                <TableHead>Parameters</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {node.subnodes.map((subnode) => (
-                <TableRow key={subnode.id}>
-                  <TableCell>
-                    <Button 
-                      variant="link" 
-                      className="h-auto p-0 font-medium"
-                      onClick={() => navigate(`/subnodes/${subnode.id}`)}
-                    >
-                      {subnode.name}
-                    </Button>
-                  </TableCell>
-                  <TableCell>v{subnode.version}</TableCell>
-                  <TableCell>
-                    <Badge variant={subnode.is_selected ? "default" : "secondary"}>
-                      {subnode.is_selected ? "Selected" : "Not Selected"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{subnode.parameters.length} parameters</TableCell>
-                  <TableCell className="text-right">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => navigate(`/subnodes/${subnode.id}`)}
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      <SubnodesSection
+        subnodes={node.subnodes || []}
+      />
 
+      {/* Version History Modal */}
+      <VersionHistoryModal
+        open={versionHistoryOpen}
+        onOpenChange={setVersionHistoryOpen}
+        versions={nodeVersions}
+        loading={nodeVersionsLoading}
+        onActivateVersion={activateNodeVersion}
+        onViewVersion={handleViewVersion}
+      />
+
+      {/* Back to Nodes Button */}
+      <div className="flex justify-end pt-4">
+        <Button variant="outline" onClick={() => navigate('/nodes')}>
+          Back to Nodes
+        </Button>
+      </div>
     </div>
   );
 }

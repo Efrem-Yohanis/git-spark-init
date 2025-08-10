@@ -12,45 +12,87 @@ const axiosInstance = axios.create({
 // Interfaces based on API response
 export interface SubnodeListItem {
   id: string;
-  version: number;
+  name: string;
+  description: string;
+  node: string;
+  active_version: number | null;
+  original_version: number;
+  version_comment: string | null;
   created_at: string;
   updated_at: string;
-  last_updated_by: string | null;
-  last_updated_at: string;
-  name: string;
-  is_selected: boolean;
-  node: string;
+  created_by: string;
+  updated_by: string;
 }
 
 export interface SubnodeDetail {
   id: string;
-  version: number;
-  created_at: string;
-  updated_at: string;
-  last_updated_by: string | null;
-  last_updated_at: string;
   name: string;
-  is_selected: boolean;
+  description: string;
   node: string;
+  active_version: number | null;
+  original_version: number;
+  created_at: string;
+  created_by: string;
+  versions: SubnodeVersion[];
 }
 
 export interface SubnodeVersion {
   id: string;
   version: number;
-  is_active: boolean;
+  is_deployed: boolean;
+  is_editable: boolean;
+  updated_at: string;
+  updated_by: string;
+  version_comment: string | null;
+  parameter_values: ParameterValue[];
+}
+
+export interface CreateSubnodeRequest {
+  name: string;
+  description: string;
+  node: string;
 }
 
 export interface ParameterValueRequest {
+  id: string;
   value: string;
 }
 
-export interface ParameterValueResponse {
+export interface UpdateParameterValuesRequest {
+  parameter_values: ParameterValueRequest[];
+}
+
+export interface EditWithParametersRequest {
+  name?: string;
+  description?: string;
+  parameter_values?: ParameterValueRequest[];
+}
+
+export interface CloneSubnodeRequest {
+  name?: string;
+  [key: string]: any;
+}
+
+export interface CreateEditableVersionRequest {
+  version_comment: string;
+}
+
+export interface VersionDetail {
   id: string;
-  parameter: string;
-  subnode: string;
+  name: string;
+  description: string;
+  node: string;
+  version: number;
+  version_comment: string;
+  is_deployed: boolean;
+  is_editable: boolean;
+  parameter_values: ParameterValue[];
+}
+
+export interface ParameterValue {
+  id: string;
+  parameter_key: string;
   value: string;
-  last_updated_by: string;
-  last_updated_at: string;
 }
 
 // API Service Functions
@@ -67,40 +109,104 @@ export const subnodeService = {
     return response.data;
   },
 
-  // Update subnode
+  // Update subnode (PATCH)
   async updateSubnode(id: string, data: Partial<SubnodeDetail>): Promise<SubnodeDetail> {
-    const response = await axiosInstance.put(`subnodes/${id}/`, data);
+    const response = await axiosInstance.patch(`subnodes/${id}/`, data);
     return response.data;
   },
 
-  // Delete subnode
+  // Delete subnode (all versions)
   async deleteSubnode(id: string): Promise<{ detail: string }> {
     const response = await axiosInstance.delete(`subnodes/${id}/`);
     return response.data;
   },
 
   // Create new subnode
-  async createSubnode(data: Partial<SubnodeDetail>): Promise<SubnodeDetail> {
+  async createSubnode(data: CreateSubnodeRequest): Promise<SubnodeDetail> {
     const response = await axiosInstance.post('subnodes/', data);
     return response.data;
   },
 
-  // Update parameter value
-  async updateParameterValue(parameterValueId: string, parameterData: ParameterValueRequest): Promise<ParameterValueResponse> {
-    const response = await axiosInstance.patch(`parameter-values/${parameterValueId}/`, parameterData);
+  // Update parameter values
+  async updateParameterValues(id: string, data: UpdateParameterValuesRequest): Promise<any> {
+    const response = await axiosInstance.patch(`subnodes/${id}/update_parameter_values/`, data);
     return response.data;
   },
 
-  // List all versions
-  async getSubnodeVersions(id: string): Promise<SubnodeVersion[]> {
-    const response = await axiosInstance.get(`subnodes/${id}/versions/`);
+  // Edit subnode with parameters
+  async editWithParameters(id: string, data: EditWithParametersRequest): Promise<any> {
+    const response = await axiosInstance.patch(`subnodes/${id}/edit_with_parameters/`, data);
     return response.data;
   },
 
-  // Activate specific version
-  async activateVersion(id: string, version: number): Promise<{ id: string; version: number; is_active: boolean }> {
-    const response = await axiosInstance.post(`subnodes/${id}/activate-version/`, { version });
+  // Create editable version from active
+  async createEditableVersion(id: string, data: CreateEditableVersionRequest): Promise<SubnodeDetail> {
+    const response = await axiosInstance.post(`subnodes/${id}/create_editable_version/`, data);
     return response.data;
+  },
+
+  // Activate/Deploy specific version
+  async activateVersion(id: string, version: number): Promise<{ id: string; name: string; is_deployed: boolean; version: number; message: string }> {
+    const response = await axiosInstance.post(`subnodes/${id}/activate_version/${version}/`);
+    return response.data;
+  },
+
+  // Undeploy specific version
+  async undeployVersion(id: string, version: number): Promise<{ message: string }> {
+    const response = await axiosInstance.post(`subnodes/${id}/undeploy_version/${version}/`);
+    return response.data;
+  },
+
+  // Export subnode
+  async exportSubnode(id: string): Promise<any> {
+    const response = await axiosInstance.get(`subnodes/${id}/export/`);
+    return response.data;
+  },
+
+  // Import subnode
+  async importSubnode(data: any): Promise<SubnodeDetail> {
+    const response = await axiosInstance.post('subnodes/import/', data);
+    return response.data;
+  },
+
+  // Clone subnode
+  async cloneSubnode(id: string, data?: CloneSubnodeRequest): Promise<SubnodeDetail> {
+    const response = await axiosInstance.post(`subnodes/${id}/clone/`, data || {});
+    return response.data;
+  },
+
+  // Delete specific version
+  async deleteSubnodeVersion(id: string, version: number): Promise<{ message: string }> {
+    const response = await axiosInstance.delete(`subnodes/${id}/delete_version/${version}/`);
+    return response.data;
+  },
+
+  // Delete all versions
+  async deleteAllVersions(id: string): Promise<{ message: string }> {
+    const response = await axiosInstance.delete(`subnodes/${id}/delete_all_versions/`);
+    return response.data;
+  },
+
+  // Get version detail by fetching subnode and finding the specific version
+  async getVersionDetail(id: string, version: number): Promise<VersionDetail> {
+    const subnode = await this.getSubnode(id);
+    const versionData = subnode.versions.find(v => v.version === version);
+    
+    if (!versionData) {
+      throw new Error(`Version ${version} not found for subnode ${id}`);
+    }
+    
+    return {
+      id: versionData.id,
+      name: subnode.name,
+      description: subnode.description,
+      node: subnode.node,
+      version: versionData.version,
+      version_comment: versionData.version_comment || '',
+      is_deployed: versionData.is_deployed,
+      is_editable: versionData.is_editable,
+      parameter_values: versionData.parameter_values
+    };
   },
 };
 
@@ -188,46 +294,14 @@ export const useSubnode = (id: string) => {
   return { data, loading, error, refetch };
 };
 
-// Custom hook for fetching subnode versions
-export const useSubnodeVersions = (id: string) => {
-  const [data, setData] = useState<SubnodeVersion[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+// Custom hook that returns versions from subnode data
+export const useSubnodeVersions = (subnodeData: SubnodeDetail | null) => {
+  const data = subnodeData?.versions || [];
+  const loading = false;
+  const error = null;
 
-  useEffect(() => {
-    if (!id) return;
-
-    const loadVersions = async () => {
-      try {
-        setLoading(true);
-        const versions = await subnodeService.getSubnodeVersions(id);
-        setData(versions);
-        setError(null);
-      } catch (err: any) {
-        setError(err.response?.data?.error || err.message || 'Error fetching subnode versions');
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadVersions();
-  }, [id]);
-
-  const refetch = async () => {
-    if (!id) return;
-    
-    setLoading(true);
-    try {
-      const versions = await subnodeService.getSubnodeVersions(id);
-      setData(versions);
-      setError(null);
-    } catch (err: any) {
-      setError(err.response?.data?.error || err.message || 'Error fetching subnode versions');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+  const refetch = () => {
+    // Versions are part of subnode data, so refetch is handled by parent
   };
 
   return { data, loading, error, refetch };
