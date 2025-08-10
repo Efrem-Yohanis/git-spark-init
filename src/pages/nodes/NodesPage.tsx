@@ -14,52 +14,31 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { useParameters } from "@/services/parameterService";
 import axios from "axios";
 
 interface Node {
   id: string;
   name: string;
-  description?: string;
-  script?: string;
-  parameters?: {
-    id: string;
-    key: string;
-    default_value: string;
-    datatype: string;
-  }[];
+  version: number;
+  created_at: string;
+  updated_at: string;
+  last_updated_by: string | null;
+  last_updated_at: string;
   subnodes: {
     id: string;
     name: string;
-    description: string;
-    node: string;
-    active_version: number | null;
-    original_version: number;
-    version_comment: string | null;
-    created_at: string;
-    updated_at: string;
-    created_by: string;
-    updated_by: string;
-    versions: {
+    version: number;
+    is_selected: boolean;
+    parameters: {
       id: string;
-      version: number;
-      is_deployed: boolean;
-      is_editable: boolean;
-      updated_at: string;
-      updated_by: string;
-      version_comment: string | null;
-      parameter_values: {
-        id: string;
-        parameter_key: string;
-        value: string;
-      }[];
+      node: string;
+      key: string;
+      default_value: string;
+      required: boolean;
+      last_updated_by: string | null;
+      last_updated_at: string;
     }[];
   }[];
-  version?: number;
-  created_at: string;
-  updated_at: string;
-  last_updated_by?: string | null;
-  last_updated_at?: string;
 }
 
 export function NodesPage() {
@@ -70,33 +49,6 @@ export function NodesPage() {
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { data: parameters } = useParameters();
-
-  // Calculate status counts
-  const getStatusCounts = () => {
-    let deployedCount = 0;
-    let draftCount = 0;
-    
-    nodes.forEach(node => {
-      node.subnodes.forEach(subnode => {
-        subnode.versions?.forEach(version => {
-          if (version.is_deployed) {
-            deployedCount++;
-          } else {
-            draftCount++;
-          }
-        });
-      });
-    });
-
-    return {
-      deployed: deployedCount,
-      draft: draftCount,
-      parameters: parameters?.length || 0
-    };
-  };
-
-  const statusCounts = getStatusCounts();
 
   useEffect(() => {
     fetchNodes();
@@ -205,23 +157,7 @@ export function NodesPage() {
           />
         </div>
         
-        <div className="flex items-center space-x-4">
-          {/* Status Counts */}
-          <div className="flex items-center space-x-4 text-sm">
-            <div className="flex items-center space-x-2">
-              <span className="text-muted-foreground">Deployed:</span>
-              <Badge variant="outline" className="text-green-600 border-green-600">{statusCounts.deployed}</Badge>
-            </div>
-            <div className="flex items-center space-x-2">
-              <span className="text-muted-foreground">Drafted:</span>
-              <Badge variant="outline" className="text-orange-600 border-orange-600">{statusCounts.draft}</Badge>
-            </div>
-            <div className="flex items-center space-x-2">
-              <span className="text-muted-foreground">Parameters:</span>
-              <Badge variant="outline" className="text-blue-600 border-blue-600">{statusCounts.parameters}</Badge>
-            </div>
-          </div>
-          
+        <div className="flex items-center space-x-2">
           <div className="flex border border-border rounded-md">
             <Button
               onClick={() => setViewMode('grid')}
@@ -276,7 +212,7 @@ export function NodesPage() {
                     <span className="font-medium">Subnodes:</span> {node.subnodes.length}
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    <span className="font-medium">Parameters:</span> {node.parameters?.length || 0}
+                    <span className="font-medium">Parameters:</span> {node.subnodes.reduce((total, subnode) => total + subnode.parameters.length, 0)}
                   </div>
                 </div>
                 
