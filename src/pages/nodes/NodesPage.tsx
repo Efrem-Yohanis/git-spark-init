@@ -195,34 +195,6 @@ export function NodesPage() {
 
   return (
     <div className="space-y-6">
-      {/* Status Counts Header */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">{statusCounts.deployed}</div>
-              <div className="text-sm text-muted-foreground">Deployed</div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-orange-600">{statusCounts.draft}</div>
-              <div className="text-sm text-muted-foreground">Drafted</div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">{statusCounts.parameters}</div>
-              <div className="text-sm text-muted-foreground">Parameters</div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <Input
@@ -233,7 +205,23 @@ export function NodesPage() {
           />
         </div>
         
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-4">
+          {/* Status Counts */}
+          <div className="flex items-center space-x-4 text-sm">
+            <div className="flex items-center space-x-2">
+              <span className="text-muted-foreground">Deployed:</span>
+              <Badge variant="outline" className="text-green-600 border-green-600">{statusCounts.deployed}</Badge>
+            </div>
+            <div className="flex items-center space-x-2">
+              <span className="text-muted-foreground">Drafted:</span>
+              <Badge variant="outline" className="text-orange-600 border-orange-600">{statusCounts.draft}</Badge>
+            </div>
+            <div className="flex items-center space-x-2">
+              <span className="text-muted-foreground">Parameters:</span>
+              <Badge variant="outline" className="text-blue-600 border-blue-600">{statusCounts.parameters}</Badge>
+            </div>
+          </div>
+          
           <div className="flex border border-border rounded-md">
             <Button
               onClick={() => setViewMode('grid')}
