@@ -28,7 +28,6 @@ export function NodeDetailPage() {
 
   // Parameters management
   const [nodeParameters, setNodeParameters] = useState<Parameter[]>([]);
-  const [parametersLoading, setParametersLoading] = useState(false);
 
   useEffect(() => {
     const fetchNode = async () => {
@@ -38,11 +37,21 @@ export function NodeDetailPage() {
         const nodeData = await nodeService.getNode(id);
         setNode(nodeData);
         
+        // Map parameters from node data to match Parameter interface
+        const mappedParameters = (nodeData.parameters || []).map(param => ({
+          id: param.id,
+          key: param.key,
+          default_value: param.default_value,
+          datatype: param.datatype,
+          node: nodeData.id,
+          required: false, // Default value since not in API
+          last_updated_by: null,
+          last_updated_at: nodeData.updated_at
+        }));
+        setNodeParameters(mappedParameters);
+        
         // Fetch initial data
-        await Promise.all([
-          fetchNodeVersions(),
-          fetchNodeParameters()
-        ]);
+        await fetchNodeVersions();
       } catch (err: any) {
         console.error("Error fetching node:", err);
         setError(err.response?.data?.error || err.message || "Error fetching node");
@@ -83,25 +92,6 @@ export function NodeDetailPage() {
     }
   };
 
-  // Fetch node parameters
-  const fetchNodeParameters = async () => {
-    if (!id) return;
-    
-    setParametersLoading(true);
-    try {
-      const parameters = await nodeService.getNodeParameters(id);
-      setNodeParameters(parameters);
-    } catch (err: any) {
-      console.error('Error fetching node parameters:', err);
-      toast({
-        title: "Error",
-        description: "Failed to load node parameters",
-        variant: "destructive"
-      });
-    } finally {
-      setParametersLoading(false);
-    }
-  };
 
   // Event handlers
   const handleEditVersion = () => {
@@ -266,7 +256,7 @@ export function NodeDetailPage() {
       {/* Properties Section */}
       <PropertiesSection
         properties={nodeParameters}
-        loading={parametersLoading}
+        loading={false}
       />
 
       <Separator />

@@ -14,6 +14,13 @@ export interface Node {
   id: string;
   name: string;
   description?: string;
+  script?: string;
+  parameters?: {
+    id: string;
+    key: string;
+    default_value: string;
+    datatype: string;
+  }[];
   subnodes?: any[];
   version: number;
   created_at: string;

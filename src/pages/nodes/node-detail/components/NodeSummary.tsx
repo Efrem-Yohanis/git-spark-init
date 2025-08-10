@@ -64,10 +64,6 @@ export function NodeSummary({
               <p className="mt-1 text-sm font-mono">{node.id}</p>
             </div>
             
-            <div>
-              <span className="text-sm font-medium text-muted-foreground">Selected Version</span>
-              <p className="mt-1 text-sm font-semibold">v{selectedVersion?.version || node.version}</p>
-            </div>
           </div>
         </div>
       </CardContent>
