@@ -43,7 +43,7 @@ export function NodeSummary({
           <div className="space-y-4">
             <div>
               <span className="text-sm font-medium text-muted-foreground">Last Updated By</span>
-              <p className="mt-1 text-sm">{selectedVersion?.created_by || "Unknown"}</p>
+              <p className="mt-1 text-sm">{node.last_updated_by || "Unknown"}</p>
             </div>
             
             <div>

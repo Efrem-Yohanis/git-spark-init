@@ -1,7 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Play, Square, History, Plus } from "lucide-react";
+import { Edit, Play, Square, History, Plus, TestTube } from "lucide-react";
 import { Node, NodeVersion } from "@/services/nodeService";
+import { useNavigate } from "react-router-dom";
 
 interface NodeHeaderProps {
   node: Node;
@@ -22,8 +23,13 @@ export function NodeHeader({
   onShowVersionHistory,
   isLoading = false
 }: NodeHeaderProps) {
-  const isDeployed = selectedVersion?.is_active;
-  const isEditable = selectedVersion && !selectedVersion.is_active;
+  const navigate = useNavigate();
+  const isDeployed = selectedVersion?.is_deployed;
+  const isEditable = selectedVersion && !selectedVersion.is_deployed;
+
+  const handleTestNode = () => {
+    navigate(`/nodes/${node.id}/test`);
+  };
 
   const getStatusBadge = () => {
     if (isDeployed) {
@@ -78,6 +84,16 @@ export function NodeHeader({
             title={isDeployed ? "Stop Version" : "Deploy Version"}
           >
             {isDeployed ? <Square className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+          </Button>
+          
+          <Button 
+            variant="outline"
+            onClick={handleTestNode}
+            disabled={isLoading}
+            size="icon"
+            title="Test Node"
+          >
+            <TestTube className="h-4 w-4" />
           </Button>
           
           <Button 

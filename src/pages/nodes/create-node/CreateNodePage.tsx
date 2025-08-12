@@ -76,7 +76,7 @@ export function CreateNodePage() {
       const newNode = await nodeService.createNode({
         name: nodeName,
         description: nodeDescription,
-        script: scriptFile
+        script: scriptFile?.name || ''
       });
 
       // Add parameters if any are selected

@@ -25,6 +25,9 @@ export function NodeDetailPage() {
   const [selectedVersion, setSelectedVersion] = useState<NodeVersion | null>(null);
   const [nodeVersionsLoading, setNodeVersionsLoading] = useState(false);
   const [versionHistoryOpen, setVersionHistoryOpen] = useState(false);
+  
+  // Active node checking
+  const [currentActiveNode, setCurrentActiveNode] = useState<Node | null>(null);
 
   // Parameters management
   const [nodeParameters, setNodeParameters] = useState<Parameter[]>([]);
@@ -37,8 +40,9 @@ export function NodeDetailPage() {
         const nodeData = await nodeService.getNode(id);
         setNode(nodeData);
         
-        // Map parameters from node data to match Parameter interface
-        const mappedParameters = (nodeData.parameters || []).map(param => ({
+        // Map parameters from active version or latest version
+        const activeVersion = nodeData.versions.find(v => v.is_deployed) || nodeData.versions[0];
+        const mappedParameters = (activeVersion?.parameters || []).map((param: any) => ({
           id: param.id,
           key: param.key,
           default_value: param.default_value,
@@ -46,12 +50,17 @@ export function NodeDetailPage() {
           node: nodeData.id,
           required: false, // Default value since not in API
           last_updated_by: null,
-          last_updated_at: nodeData.updated_at
+          last_updated_at: nodeData.last_updated_at,
+          is_active: param.is_active
         }));
         setNodeParameters(mappedParameters);
         
         // Fetch initial data
         await fetchNodeVersions();
+        
+        // Check for currently active node in the system
+        const activeNode = await nodeService.getActiveNode();
+        setCurrentActiveNode(activeNode);
       } catch (err: any) {
         console.error("Error fetching node:", err);
         setError(err.response?.data?.error || err.message || "Error fetching node");
@@ -78,7 +87,10 @@ export function NodeDetailPage() {
       setNodeVersions(versions);
       
       // Set selected version to active version or latest
-      const activeVersion = versions.find(v => v.is_active) || versions[0];
+      const activeVersion = versions.find(v => v.is_deployed) || versions[0];
+      console.log('🔍 Active version found:', activeVersion);
+      console.log('🔍 Subnodes in active version:', activeVersion?.subnodes);
+      console.log('🔍 Subnodes length:', activeVersion?.subnodes?.length);
       setSelectedVersion(activeVersion);
     } catch (err: any) {
       console.error('Error fetching node versions:', err);
@@ -95,7 +107,7 @@ export function NodeDetailPage() {
 
   // Event handlers
   const handleEditVersion = () => {
-    if (selectedVersion && !selectedVersion.is_active) {
+    if (selectedVersion && !selectedVersion.is_deployed) {
       navigate(`/nodes/${id}/edit?version=${selectedVersion.version}`);
     }
   };
@@ -108,26 +120,45 @@ export function NodeDetailPage() {
     if (!selectedVersion || !id) return;
     
     try {
-      if (selectedVersion.is_active) {
+      if (selectedVersion.is_deployed) {
         // For now, just show a message that deactivation would happen
         toast({
           title: "Toggle Deployment",
           description: `Version ${selectedVersion.version} deployment would be toggled`,
         });
       } else {
+        // Check if another node is currently active
+        const activeNode = await nodeService.getActiveNode();
+        
+        if (activeNode && activeNode.id !== id) {
+          // Show confirmation dialog for deactivating current active node
+          const shouldProceed = window.confirm(
+            `Node "${activeNode.name}" (v${activeNode.active_version}) is currently active. ` +
+            `Activating this node will deactivate "${activeNode.name}". Do you want to proceed?`
+          );
+          
+          if (!shouldProceed) {
+            return;
+          }
+        }
+        
         // Deploy/activate version
         await nodeService.activateNodeVersion(id, selectedVersion.version);
         toast({
-          title: "Version Deployed",
-          description: `Node version ${selectedVersion.version} is now deployed`,
+          title: "Node Activated",
+          description: `Node "${node?.name}" version ${selectedVersion.version} is now active`,
         });
         
-        // Refresh versions
+        // Refresh versions and active node status
         await fetchNodeVersions();
         
         // Refresh node data
         const updatedNode = await nodeService.getNode(id);
         setNode(updatedNode);
+        
+        // Update active node state
+        const newActiveNode = await nodeService.getActiveNode();
+        setCurrentActiveNode(newActiveNode);
       }
       
     } catch (err: any) {
@@ -160,29 +191,48 @@ export function NodeDetailPage() {
     if (!id) return;
     
     try {
+      // Check if another node is currently active
+      const activeNode = await nodeService.getActiveNode();
+      
+      if (activeNode && activeNode.id !== id) {
+        // Show confirmation dialog for deactivating current active node
+        const shouldProceed = window.confirm(
+          `Node "${activeNode.name}" (v${activeNode.active_version}) is currently active. ` +
+          `Activating this node will deactivate "${activeNode.name}". Do you want to proceed?`
+        );
+        
+        if (!shouldProceed) {
+          return;
+        }
+      }
+      
       await nodeService.activateNodeVersion(id, version);
       
       // Update versions state
       setNodeVersions(prevVersions => 
         prevVersions.map(v => ({
           ...v,
-          is_active: v.version === version
+          is_deployed: v.version === version
         }))
       );
       
       // Update selected version
       const activatedVersion = nodeVersions.find(v => v.version === version);
       if (activatedVersion) {
-        setSelectedVersion({ ...activatedVersion, is_active: true });
+        setSelectedVersion({ ...activatedVersion, is_deployed: true });
       }
       
       // Refresh node data
       const updatedNode = await nodeService.getNode(id);
       setNode(updatedNode);
       
+      // Update active node state
+      const newActiveNode = await nodeService.getActiveNode();
+      setCurrentActiveNode(newActiveNode);
+      
       toast({
-        title: "Version Activated",
-        description: `Node version ${version} is now active`,
+        title: "Node Activated",
+        description: `Node "${node?.name}" version ${version} is now active`,
       });
       
       setVersionHistoryOpen(false);
@@ -230,6 +280,21 @@ export function NodeDetailPage() {
 
   return (
     <div className="space-y-6">
+      {/* Current Active Node Warning */}
+      {currentActiveNode && currentActiveNode.id !== node.id && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <div className="flex items-center space-x-2">
+            <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></div>
+            <span className="text-yellow-800 font-medium">
+              Another node is currently active: "{currentActiveNode.name}" (v{currentActiveNode.active_version})
+            </span>
+          </div>
+          <p className="text-yellow-700 text-sm mt-1">
+            Activating this node will automatically deactivate the currently active node.
+          </p>
+        </div>
+      )}
+
       {/* Header Section */}
       <NodeHeader
         node={node}
@@ -248,7 +313,7 @@ export function NodeDetailPage() {
         node={node}
         selectedVersion={selectedVersion}
         propertiesCount={nodeParameters.length}
-        subnodesCount={node.subnodes?.length || 0}
+        subnodesCount={selectedVersion?.subnodes?.length || 0}
       />
 
       <Separator />
@@ -262,9 +327,15 @@ export function NodeDetailPage() {
       <Separator />
 
       {/* Subnodes Section */}
-      <SubnodesSection
-        subnodes={node.subnodes || []}
-      />
+      {(() => {
+        console.log('🔍 Rendering SubnodesSection - selectedVersion:', selectedVersion);
+        console.log('🔍 Rendering SubnodesSection - subnodes:', selectedVersion?.subnodes);
+        return (
+          <SubnodesSection
+            subnodes={selectedVersion?.subnodes || []}
+          />
+        );
+      })()}
 
       {/* Version History Modal */}
       <VersionHistoryModal

@@ -56,13 +56,13 @@ export function VersionHistoryModal({
                 {versions.map((version) => (
                   <TableRow key={version.id}>
                     <TableCell>
-                      <Badge variant={version.is_active ? "default" : "outline"}>
+                      <Badge variant={version.is_deployed ? "default" : "outline"}>
                         v{version.version}
                       </Badge>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center space-x-2">
-                        {version.is_active ? (
+                        {version.is_deployed ? (
                           <>
                             <CheckCircle className="h-4 w-4 text-green-500" />
                             <span className="text-green-700 font-medium">Deployed</span>
@@ -76,8 +76,8 @@ export function VersionHistoryModal({
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={!version.is_active ? "secondary" : "outline"}>
-                        {!version.is_active ? (
+                      <Badge variant={!version.is_deployed ? "secondary" : "outline"}>
+                        {!version.is_deployed ? (
                           <>
                             <Edit className="h-3 w-3 mr-1" />
                             Editable
@@ -90,11 +90,11 @@ export function VersionHistoryModal({
                     <TableCell>
                       <div className="flex items-center space-x-2">
                         <User className="h-4 w-4 text-muted-foreground" />
-                        <span>{version.created_by}</span>
+                        <span>System</span>
                       </div>
                     </TableCell>
                     <TableCell>
-                      {new Date(version.created_at).toLocaleDateString('en-US', {
+                      {new Date(version.updated_at).toLocaleDateString('en-US', {
                         year: 'numeric',
                         month: 'short',
                         day: 'numeric',
@@ -104,7 +104,7 @@ export function VersionHistoryModal({
                     </TableCell>
                     <TableCell>
                       <span className="text-sm text-muted-foreground">
-                        {version.description || 'No description'}
+                        {version.version_comment || 'No description'}
                       </span>
                     </TableCell>
                     <TableCell>
@@ -117,7 +117,7 @@ export function VersionHistoryModal({
                           <Eye className="h-3 w-3 mr-1" />
                           View
                         </Button>
-                        {!version.is_active && (
+                        {!version.is_deployed && (
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <Button variant="default" size="sm">
@@ -142,7 +142,7 @@ export function VersionHistoryModal({
                             </AlertDialogContent>
                           </AlertDialog>
                         )}
-                        {version.is_active && (
+                        {version.is_deployed && (
                           <Badge variant="secondary" className="text-xs">
                             Current
                           </Badge>

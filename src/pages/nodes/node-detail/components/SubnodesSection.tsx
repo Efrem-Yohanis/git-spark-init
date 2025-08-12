@@ -8,10 +8,16 @@ import { useNavigate } from "react-router-dom";
 interface Subnode {
   id: string;
   name: string;
-  version: number;
-  is_selected: boolean;
-  last_updated_by?: string;
-  last_updated_at: string;
+  description: string;
+  node: string;
+  active_version: number | null;
+  original_version: number;
+  version_comment: string | null;
+  created_at: string;
+  updated_at: string;
+  created_by: string;
+  updated_by: string;
+  versions: any[];
 }
 
 interface SubnodesSectionProps {
@@ -20,6 +26,9 @@ interface SubnodesSectionProps {
 
 export function SubnodesSection({ subnodes }: SubnodesSectionProps) {
   const navigate = useNavigate();
+
+  console.log('🔍 SubnodesSection received subnodes:', subnodes);
+  console.log('🔍 SubnodesSection subnodes length:', subnodes.length);
 
   return (
     <Card>
@@ -44,16 +53,18 @@ export function SubnodesSection({ subnodes }: SubnodesSectionProps) {
                 <TableRow key={subnode.id} className="cursor-pointer hover:bg-muted/50">
                   <TableCell className="font-medium">{subnode.name}</TableCell>
                   <TableCell>
-                    <Badge variant="outline">v{subnode.version}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={subnode.is_selected ? "default" : "secondary"}>
-                      {subnode.is_selected ? "Selected" : "Not Selected"}
+                    <Badge variant="outline">
+                      {subnode.active_version ? `v${subnode.active_version}` : 'No Active Version'}
                     </Badge>
                   </TableCell>
-                  <TableCell>{subnode.last_updated_by || "Unknown"}</TableCell>
                   <TableCell>
-                    {new Date(subnode.last_updated_at).toLocaleDateString('en-US', {
+                    <Badge variant={subnode.active_version ? "default" : "secondary"}>
+                      {subnode.active_version ? "Active" : "Inactive"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>{subnode.updated_by || "Unknown"}</TableCell>
+                  <TableCell>
+                    {new Date(subnode.updated_at).toLocaleDateString('en-US', {
                       year: 'numeric',
                       month: 'short',
                       day: 'numeric'
