@@ -79,9 +79,9 @@ export function CreateNodePage() {
         script: scriptFile?.name || ''
       });
 
-      // Add parameters if any are selected
+      // Add parameters to version 1 if any are selected
       if (selectedParameterIds.length > 0) {
-        await nodeService.addParametersToNode(newNode.id, selectedParameterIds);
+        await nodeService.addParametersToVersion(newNode.id, 1, selectedParameterIds);
       }
 
       toast({
