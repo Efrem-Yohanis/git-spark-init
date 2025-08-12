@@ -246,6 +246,83 @@ export function NodeDetailPage() {
     }
   };
 
+  const handleCloneNode = async () => {
+    if (!id) return;
+    
+    try {
+      const clonedNode = await nodeService.cloneNode(id);
+      toast({
+        title: "Node Cloned",
+        description: `Node "${clonedNode.name}" has been created`,
+      });
+      navigate(`/nodes/${clonedNode.id}/edit`);
+    } catch (err: any) {
+      console.error('Error cloning node:', err);
+      toast({
+        title: "Error",
+        description: "Failed to clone node",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleExportVersion = async () => {
+    if (!selectedVersion || !id) return;
+    
+    try {
+      const blob = await nodeService.exportVersion(id, selectedVersion.version);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${node?.name}_v${selectedVersion.version}.json`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      toast({
+        title: "Export Complete",
+        description: `Version ${selectedVersion.version} exported successfully`,
+      });
+    } catch (err: any) {
+      console.error('Error exporting version:', err);
+      toast({
+        title: "Error",
+        description: "Failed to export version",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleDeleteVersion = async () => {
+    if (!selectedVersion || !id) return;
+    
+    const shouldDelete = window.confirm(
+      `Are you sure you want to delete version ${selectedVersion.version}? This action cannot be undone.`
+    );
+    
+    if (!shouldDelete) return;
+    
+    try {
+      await nodeService.deleteNodeVersion(id, selectedVersion.version);
+      
+      // Refresh versions
+      await fetchNodeVersions();
+      
+      toast({
+        title: "Version Deleted",
+        description: `Version ${selectedVersion.version} has been deleted`,
+      });
+    } catch (err: any) {
+      console.error('Error deleting version:', err);
+      toast({
+        title: "Error",
+        description: "Failed to delete version",
+        variant: "destructive"
+      });
+    }
+  };
+
 
   if (loading) {
     return (
@@ -303,6 +380,9 @@ export function NodeDetailPage() {
         onToggleDeployment={handleToggleDeployment}
         onCreateNewVersion={handleCreateNewVersion}
         onShowVersionHistory={handleShowVersionHistory}
+        onCloneNode={handleCloneNode}
+        onExportVersion={handleExportVersion}
+        onDeleteVersion={handleDeleteVersion}
         isLoading={loading}
       />
 
