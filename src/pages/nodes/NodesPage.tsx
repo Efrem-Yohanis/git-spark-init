@@ -104,8 +104,8 @@ export function NodesPage() {
         setNodes(data.results);
         // Update the header statistics
         setStatusCounts({
+          total: data.total || 0,
           deployed: data.published || 0,
-          running: 0, // API doesn't provide running count for nodes
           drafted: data.draft || 0
         });
       } else {
