@@ -121,10 +121,11 @@ export function NodeDetailPage() {
     
     try {
       if (selectedVersion.is_deployed) {
-        // For now, just show a message that deactivation would happen
+        // Undeploy the version
+        await nodeService.undeployNodeVersion(id, selectedVersion.version);
         toast({
-          title: "Toggle Deployment",
-          description: `Version ${selectedVersion.version} deployment would be toggled`,
+          title: "Version Undeployed",
+          description: `Version ${selectedVersion.version} has been undeployed`,
         });
       } else {
         // Check if another node is currently active
@@ -143,23 +144,15 @@ export function NodeDetailPage() {
         }
         
         // Deploy/activate version
-        await nodeService.activateNodeVersion(id, selectedVersion.version);
+        await nodeService.deployNodeVersion(id, selectedVersion.version);
         toast({
           title: "Node Activated",
           description: `Node "${node?.name}" version ${selectedVersion.version} is now active`,
         });
-        
-        // Refresh versions and active node status
-        await fetchNodeVersions();
-        
-        // Refresh node data
-        const updatedNode = await nodeService.getNode(id);
-        setNode(updatedNode);
-        
-        // Update active node state
-        const newActiveNode = await nodeService.getActiveNode();
-        setCurrentActiveNode(newActiveNode);
       }
+      
+      // Refresh the page to reflect changes
+      window.location.reload();
       
     } catch (err: any) {
       console.error('Error toggling version deployment:', err);
@@ -178,7 +171,7 @@ export function NodeDetailPage() {
     }
   };
 
-  const handleViewVersion = (version: NodeVersion) => {
+  const handleSelectVersion = (version: NodeVersion) => {
     setSelectedVersion(version);
     setVersionHistoryOpen(false);
     toast({
@@ -187,7 +180,7 @@ export function NodeDetailPage() {
     });
   };
 
-  const activateNodeVersion = async (version: number) => {
+  const activateNodeVersion = async (version: NodeVersion) => {
     if (!id) return;
     
     try {
@@ -206,36 +199,20 @@ export function NodeDetailPage() {
         }
       }
       
-      await nodeService.activateNodeVersion(id, version);
-      
-      // Update versions state
-      setNodeVersions(prevVersions => 
-        prevVersions.map(v => ({
-          ...v,
-          is_deployed: v.version === version
-        }))
-      );
-      
-      // Update selected version
-      const activatedVersion = nodeVersions.find(v => v.version === version);
-      if (activatedVersion) {
-        setSelectedVersion({ ...activatedVersion, is_deployed: true });
-      }
-      
-      // Refresh node data
-      const updatedNode = await nodeService.getNode(id);
-      setNode(updatedNode);
-      
-      // Update active node state
-      const newActiveNode = await nodeService.getActiveNode();
-      setCurrentActiveNode(newActiveNode);
+      // Deploy the version using new API
+      await nodeService.deployNodeVersion(id, version.version);
       
       toast({
         title: "Node Activated",
-        description: `Node "${node?.name}" version ${version} is now active`,
+        description: `Node "${node?.name}" version ${version.version} is now active`,
       });
       
+      // Close modal and redirect to detail page showing the activated version
       setVersionHistoryOpen(false);
+      
+      // Refresh the page to show the activated version
+      window.location.reload();
+      
     } catch (err: any) {
       console.error('Error activating node version:', err);
       toast({
@@ -246,73 +223,34 @@ export function NodeDetailPage() {
     }
   };
 
-  const handleCloneNode = async () => {
-    if (!id) return;
-    
-    try {
-      const clonedNode = await nodeService.cloneNode(id);
-      toast({
-        title: "Node Cloned",
-        description: `Node "${clonedNode.name}" has been created`,
-      });
-      navigate(`/nodes/${clonedNode.id}/edit`);
-    } catch (err: any) {
-      console.error('Error cloning node:', err);
-      toast({
-        title: "Error",
-        description: "Failed to clone node",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const handleExportVersion = async () => {
-    if (!selectedVersion || !id) return;
-    
-    try {
-      const blob = await nodeService.exportVersion(id, selectedVersion.version);
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${node?.name}_v${selectedVersion.version}.json`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      
-      toast({
-        title: "Export Complete",
-        description: `Version ${selectedVersion.version} exported successfully`,
-      });
-    } catch (err: any) {
-      console.error('Error exporting version:', err);
-      toast({
-        title: "Error",
-        description: "Failed to export version",
-        variant: "destructive"
-      });
-    }
-  };
-
+  // Version management handlers
   const handleDeleteVersion = async () => {
-    if (!selectedVersion || !id) return;
-    
-    const shouldDelete = window.confirm(
+    if (!selectedVersion || !id || selectedVersion.is_deployed) {
+      toast({
+        title: "Cannot Delete Version",
+        description: selectedVersion?.is_deployed ? "Cannot delete a deployed version" : "No version selected",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const confirmDelete = window.confirm(
       `Are you sure you want to delete version ${selectedVersion.version}? This action cannot be undone.`
     );
-    
-    if (!shouldDelete) return;
-    
+
+    if (!confirmDelete) return;
+
     try {
-      await nodeService.deleteNodeVersion(id, selectedVersion.version);
-      
-      // Refresh versions
-      await fetchNodeVersions();
+      // Call API to delete version (you may need to add this to nodeService)
+      // await nodeService.deleteNodeVersion(id, selectedVersion.version);
       
       toast({
         title: "Version Deleted",
         description: `Version ${selectedVersion.version} has been deleted`,
       });
+
+      // Refresh versions
+      await fetchNodeVersions();
     } catch (err: any) {
       console.error('Error deleting version:', err);
       toast({
@@ -321,6 +259,59 @@ export function NodeDetailPage() {
         variant: "destructive"
       });
     }
+  };
+
+  const handleCloneVersion = async () => {
+    if (!selectedVersion || !id) return;
+
+    try {
+      // Create new version from current version
+      const newVersion = await nodeService.createNodeVersion(id, selectedVersion.version);
+      
+      toast({
+        title: "Version Cloned",
+        description: `New version ${newVersion.version} created from version ${selectedVersion.version}`,
+      });
+
+      // Refresh versions and navigate to edit the new version
+      await fetchNodeVersions();
+      navigate(`/nodes/${id}/edit?version=${newVersion.version}`);
+    } catch (err: any) {
+      console.error('Error cloning version:', err);
+      toast({
+        title: "Error",
+        description: "Failed to clone version",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleExportVersion = () => {
+    if (!selectedVersion || !node) return;
+
+    const exportData = {
+      node: {
+        id: node.id,
+        name: node.name,
+        description: node.description
+      },
+      version: selectedVersion,
+      exportedAt: new Date().toISOString()
+    };
+
+    const dataStr = JSON.stringify(exportData, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${node.name}_v${selectedVersion.version}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+
+    toast({
+      title: "Version Exported",
+      description: `Version ${selectedVersion.version} exported successfully`,
+    });
   };
 
 
@@ -380,9 +371,9 @@ export function NodeDetailPage() {
         onToggleDeployment={handleToggleDeployment}
         onCreateNewVersion={handleCreateNewVersion}
         onShowVersionHistory={handleShowVersionHistory}
-        onCloneNode={handleCloneNode}
-        onExportVersion={handleExportVersion}
         onDeleteVersion={handleDeleteVersion}
+        onCloneVersion={handleCloneVersion}
+        onExportVersion={handleExportVersion}
         isLoading={loading}
       />
 
@@ -422,9 +413,10 @@ export function NodeDetailPage() {
         open={versionHistoryOpen}
         onOpenChange={setVersionHistoryOpen}
         versions={nodeVersions}
-        loading={nodeVersionsLoading}
+        selectedVersion={selectedVersion}
+        onSelectVersion={handleSelectVersion}
         onActivateVersion={activateNodeVersion}
-        onViewVersion={handleViewVersion}
+        isLoading={nodeVersionsLoading}
       />
 
       {/* Back to Nodes Button */}

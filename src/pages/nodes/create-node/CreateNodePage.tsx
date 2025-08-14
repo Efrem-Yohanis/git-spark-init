@@ -2,14 +2,10 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CreateNodeWizard } from "./CreateNodeWizard";
-
-// Legacy single-page form (keeping for backwards compatibility)
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -18,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { nodeService } from "@/services/nodeService";
 import { useParameters } from "@/services/parameterService";
 
-function LegacyCreateForm() {
+export function CreateNodePage() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { data: availableParameters, loading: parametersLoading } = useParameters();
@@ -83,9 +79,9 @@ function LegacyCreateForm() {
         script: scriptFile?.name || ''
       });
 
-      // Add parameters to version 1 if any are selected
+      // Add parameters if any are selected
       if (selectedParameterIds.length > 0) {
-        await nodeService.addParametersToVersion(newNode.id, 1, selectedParameterIds);
+        await nodeService.addParametersToNode(newNode.id, selectedParameterIds);
       }
 
       toast({
@@ -117,6 +113,10 @@ function LegacyCreateForm() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold">Create New Node</h1>
+      </div>
+
       {/* Node Information */}
       <Card>
         <CardHeader>
@@ -266,51 +266,6 @@ function LegacyCreateForm() {
           {isLoading ? "Creating..." : "Save Node"}
         </Button>
       </div>
-    </div>
-  );
-}
-
-export function CreateNodePage() {
-  return (
-    <div className="max-w-6xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Create New Node</h1>
-      </div>
-
-      <Tabs defaultValue="wizard" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="wizard">4-Step Wizard (Recommended)</TabsTrigger>
-          <TabsTrigger value="simple">Simple Form</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="wizard" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Guided Node Creation</CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Follow our 4-step wizard to create a complete node setup with family, version, subnode, and parameter values.
-              </p>
-            </CardHeader>
-            <CardContent>
-              <CreateNodeWizard />
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="simple" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Quick Node Creation</CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Create a basic node with name, description, script, and parameters in one step.
-              </p>
-            </CardHeader>
-            <CardContent>
-              <LegacyCreateForm />
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
     </div>
   );
 }
