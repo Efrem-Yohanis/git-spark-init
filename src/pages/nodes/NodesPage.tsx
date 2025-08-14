@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { useSection } from "@/contexts/SectionContext";
 import axios from "axios";
 
 interface NodeFamily {
@@ -83,9 +84,9 @@ export function NodesPage() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [stats, setStats] = useState({ total: 0, published: 0, draft: 0 });
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { setStatusCounts } = useSection();
 
   useEffect(() => {
     fetchNodes();
@@ -101,10 +102,11 @@ export function NodesPage() {
       const data = response.data;
       if (data && Array.isArray(data.results)) {
         setNodes(data.results);
-        setStats({
-          total: data.total || 0,
-          published: data.published || 0,
-          draft: data.draft || 0
+        // Update the header statistics
+        setStatusCounts({
+          deployed: data.published || 0,
+          running: 0, // API doesn't provide running count for nodes
+          drafted: data.draft || 0
         });
       } else {
         console.error("API response does not contain results array:", data);
@@ -201,28 +203,6 @@ export function NodesPage() {
 
   return (
     <div className="space-y-6">
-      {/* Statistics Header */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-foreground">{stats.total}</div>
-            <div className="text-sm text-muted-foreground">Total</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-foreground">{stats.published}</div>
-            <div className="text-sm text-muted-foreground">Deployed</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-foreground">{stats.draft}</div>
-            <div className="text-sm text-muted-foreground">Draft</div>
-          </CardContent>
-        </Card>
-      </div>
-
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <Input
