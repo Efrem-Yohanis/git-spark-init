@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Download, Settings, Trash2, Eye, Edit, Grid2X2, List, Copy } from "lucide-react";
+import { Plus, Download, Settings, Trash2, Eye, Edit, Grid2X2, List, Copy, MoreVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -13,6 +13,12 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useParameters, parameterService } from "@/services/parameterService";
 import { useToast } from "@/hooks/use-toast";
 
@@ -148,8 +154,7 @@ export function ParametersPage() {
           </div>
           <Button variant="outline" size="sm" asChild>
             <label htmlFor="import-file" className="cursor-pointer">
-              <Plus className="h-4 w-4 mr-2" />
-              Import
+              <Plus className="h-4 w-4" />
             </label>
           </Button>
           <input
@@ -161,7 +166,7 @@ export function ParametersPage() {
           />
           <Button onClick={() => navigate("/parameters/new")}>
             <Plus className="h-4 w-4 mr-2" />
-            Create New Parameter
+            NEW
           </Button>
         </div>
       </div>
@@ -186,42 +191,36 @@ export function ParametersPage() {
                   </div>
                 </div>
                 
-                <div className="pt-2 border-t border-border">
-                  <div className="text-xs font-medium text-foreground mb-2">Actions:</div>
-                  <div className="flex gap-2 flex-wrap">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => navigate(`/parameters/${param.id}`)}
-                    >
-                      <Eye className="h-3 w-3 mr-1" />
-                      View
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => handleExport(param.id)}
-                    >
-                      <Download className="h-3 w-3 mr-1" />
-                      Export
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => handleClone(param)}
-                    >
-                      <Copy className="h-3 w-3 mr-1" />
-                      Clone
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => handleDelete(param.id)}
-                    >
-                      <Trash2 className="h-3 w-3 mr-1" />
-                      Delete
-                    </Button>
-                  </div>
+                <div className="pt-2 border-t border-border flex justify-between items-center">
+                  <div className="text-xs font-medium text-foreground">Actions:</div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="bg-background border border-border shadow-lg z-50">
+                      <DropdownMenuItem onClick={() => navigate(`/parameters/${param.id}`)}>
+                        <Eye className="h-4 w-4 mr-2" />
+                        View
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleExport(param.id)}>
+                        <Download className="h-4 w-4 mr-2" />
+                        Export
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleClone(param)}>
+                        <Copy className="h-4 w-4 mr-2" />
+                        Clone
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={() => handleDelete(param.id)}
+                        className="text-destructive focus:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </CardContent>
             </Card>

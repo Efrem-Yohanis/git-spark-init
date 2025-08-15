@@ -233,12 +233,11 @@ export function NodesPage() {
             </Button>
           </div>
           <Button variant="outline" size="sm">
-            <Upload className="h-4 w-4 mr-2" />
-            Import Node
+            <Upload className="h-4 w-4" />
           </Button>
           <Button onClick={() => navigate("/nodes/new")}>
             <Plus className="h-4 w-4 mr-2" />
-            Create New Node
+            NEW
           </Button>
         </div>
       </div>
