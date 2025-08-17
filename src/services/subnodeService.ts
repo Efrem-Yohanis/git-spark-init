@@ -96,7 +96,7 @@ export interface CreateSubnodeResponse {
 export interface CreateSubnodeRequest {
   name: string;
   description: string;
-  node: string;
+  node_family: string;
 }
 
 export interface ParameterValueRequest {

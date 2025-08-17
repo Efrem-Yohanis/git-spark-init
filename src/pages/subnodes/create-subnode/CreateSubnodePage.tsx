@@ -35,7 +35,7 @@ export function CreateSubnodePage() {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    node: "",
+    node_family: "",
   });
   
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -58,7 +58,7 @@ export function CreateSubnodePage() {
       return;
     }
 
-    if (!formData.node) {
+    if (!formData.node_family) {
       toast({
         title: "Validation Error",
         description: "Please select a parent node",
@@ -72,7 +72,7 @@ export function CreateSubnodePage() {
       const newSubnode = await subnodeService.createSubnode({
         name: formData.name,
         description: formData.description,
-        node: formData.node
+        node_family: formData.node_family
       });
       
       toast({
@@ -142,8 +142,8 @@ export function CreateSubnodePage() {
             <div className="space-y-2">
               <Label htmlFor="parentNode">Select Parent Node *</Label>
               <Select 
-                value={formData.node}
-                onValueChange={(value) => handleInputChange('node', value)}
+                value={formData.node_family}
+                onValueChange={(value) => handleInputChange('node_family', value)}
                 disabled={nodesLoading}
               >
                 <SelectTrigger>
@@ -180,7 +180,7 @@ export function CreateSubnodePage() {
         </Button>
         <Button 
           onClick={handleSave} 
-          disabled={!formData.node || isSubmitting || nodesLoading}
+          disabled={!formData.node_family || isSubmitting || nodesLoading}
         >
           {isSubmitting ? "Creating..." : "Create Subnode"}
         </Button>
