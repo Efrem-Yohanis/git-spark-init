@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, Upload, Download, Settings, Trash2, Eye, Grid2X2, List, Copy, MoreVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,12 +21,27 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useSubnodes, subnodeService } from "@/services/subnodeService";
 import { toast } from "sonner";
+import { useSection } from "@/contexts/SectionContext";
 
 export function SubnodesPage() {
-  const { data: subnodes, loading, error, refetch } = useSubnodes();
+  const { data: subnodesData, loading, error, refetch } = useSubnodes();
   const [searchTerm, setSearchTerm] = useState("");
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const navigate = useNavigate();
+  const { setStatusCounts } = useSection();
+
+  // Update stats when data changes
+  useEffect(() => {
+    if (subnodesData) {
+      setStatusCounts({
+        total: subnodesData.total,
+        deployed: subnodesData.published,
+        drafted: subnodesData.draft
+      });
+    }
+  }, [subnodesData, setStatusCounts]);
+
+  const subnodes = subnodesData?.results || [];
 
   if (loading) {
     return (
@@ -52,7 +67,7 @@ export function SubnodesPage() {
 
   const filteredSubnodes = subnodes.filter(subnode =>
     subnode.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    subnode.node.toLowerCase().includes(searchTerm.toLowerCase())
+    (subnode.node_family_name && subnode.node_family_name.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   const getDeploymentBadge = (activeVersion: number | null) => {
@@ -82,9 +97,15 @@ export function SubnodesPage() {
     link.click();
   };
 
-  const handleClone = (subnode: any) => {
-    // For now, just redirect to create page - clone functionality would need backend support
-    navigate(`/subnodes/create`);
+  const handleClone = async (subnode: any) => {
+    try {
+      await subnodeService.cloneSubnode(subnode.id, { name: `${subnode.name}_clone` });
+      toast.success("Subnode cloned successfully");
+      refetch();
+    } catch (error) {
+      toast.error("Failed to clone subnode");
+      console.error("Clone error:", error);
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -122,7 +143,25 @@ export function SubnodesPage() {
               <List className="h-4 w-4" />
             </Button>
           </div>
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={() => {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = async (e) => {
+              const file = (e.target as HTMLInputElement).files?.[0];
+              if (file) {
+                try {
+                  await subnodeService.importSubnode(file);
+                  toast.success("Subnode imported successfully");
+                  refetch();
+                } catch (error) {
+                  toast.error("Failed to import subnode");
+                  console.error("Import error:", error);
+                }
+              }
+            };
+            input.click();
+          }}>
             <Upload className="h-4 w-4" />
           </Button>
           <Button onClick={() => navigate("/subnodes/create")}>
@@ -150,8 +189,8 @@ export function SubnodesPage() {
               <CardContent className="space-y-3">
                 <div className="grid grid-cols-1 gap-2 text-xs">
                   <div className="text-muted-foreground">
-                    <span className="font-medium">Node ID:</span>
-                    <Badge variant="outline" className="ml-2">{subnode.node}</Badge>
+                    <span className="font-medium">Node Family:</span>
+                    <Badge variant="outline" className="ml-2">{subnode.node_family_name || subnode.node_family}</Badge>
                   </div>
                   <div className="text-muted-foreground">
                     <span className="font-medium">Active Version:</span> 
@@ -161,10 +200,10 @@ export function SubnodesPage() {
                 
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div className="text-muted-foreground">
-                    <span className="font-medium">Created:</span> {formatDate(subnode.created_at)}
+                    <span className="font-medium">Last Updated By:</span> {subnode.updated_by || 'Unknown'}
                   </div>
                   <div className="text-muted-foreground">
-                    <span className="font-medium">Updated:</span> {formatDate(subnode.updated_at)}
+                    <span className="font-medium">Last Updated At:</span> {formatDate(subnode.updated_at)}
                   </div>
                 </div>
                 
@@ -209,11 +248,11 @@ export function SubnodesPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>SubNode Name</TableHead>
-                <TableHead>Node ID</TableHead>
+                <TableHead>Node Family</TableHead>
                 <TableHead>Version</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Created Date</TableHead>
-                <TableHead>Updated Date</TableHead>
+                <TableHead>Last Updated By</TableHead>
+                <TableHead>Last Updated At</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -222,7 +261,7 @@ export function SubnodesPage() {
                 <TableRow key={subnode.id}>
                   <TableCell className="font-medium">{subnode.name}</TableCell>
                   <TableCell>
-                    <Badge variant="outline">{subnode.node}</Badge>
+                    <Badge variant="outline">{subnode.node_family_name || subnode.node_family}</Badge>
                   </TableCell>
                   <TableCell className="text-sm">{subnode.active_version || 'None'}</TableCell>
                   <TableCell>
@@ -233,7 +272,7 @@ export function SubnodesPage() {
                       {subnode.active_version ? "Active" : "Inactive"}
                     </Badge>
                   </TableCell>
-                  <TableCell>{formatDate(subnode.created_at)}</TableCell>
+                  <TableCell>{subnode.updated_by || 'Unknown'}</TableCell>
                   <TableCell>{formatDate(subnode.updated_at)}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end space-x-2">

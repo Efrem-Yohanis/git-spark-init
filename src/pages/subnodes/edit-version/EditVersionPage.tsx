@@ -73,14 +73,14 @@ export function EditVersionPage() {
     
     setSaving(true);
     try {
-      const updateData = {
-        parameter_values: parameterValues.map(pv => ({
+      await subnodeService.updateParameterValues(
+        versionDetail.id, 
+        versionDetail.version,
+        parameterValues.map(pv => ({
           id: pv.id,
           value: pv.value
         }))
-      };
-      
-      await subnodeService.updateParameterValues(versionDetail.id, updateData);
+      );
       toast.success("Parameter values updated successfully");
       navigate(`/subnodes/${id}?version=${versionDetail.version}`);
     } catch (error) {

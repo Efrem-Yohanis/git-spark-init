@@ -21,7 +21,7 @@ interface Subnode {
 }
 
 interface SubnodesSectionProps {
-  subnodes: Subnode[];
+  subnodes: any[]; // Updated to handle the new API structure
 }
 
 export function SubnodesSection({ subnodes }: SubnodesSectionProps) {
@@ -49,32 +49,26 @@ export function SubnodesSection({ subnodes }: SubnodesSectionProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {subnodes.map((subnode) => (
-                <TableRow key={subnode.id} className="cursor-pointer hover:bg-muted/50">
-                  <TableCell className="font-medium">{subnode.name}</TableCell>
+              {subnodes.map((subnode, index) => (
+                <TableRow key={subnode.link_id || index} className="cursor-pointer hover:bg-muted/50">
+                  <TableCell className="font-medium">{subnode.family?.name || 'Unknown'}</TableCell>
                   <TableCell>
                     <Badge variant="outline">
-                      {subnode.active_version ? `v${subnode.active_version}` : 'No Active Version'}
+                      {subnode.version?.version ? `v${subnode.version.version}` : 'No Active Version'}
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={subnode.active_version ? "default" : "secondary"}>
-                      {subnode.active_version ? "Active" : "Inactive"}
+                    <Badge variant={subnode.version?.state === 'published' ? "default" : "secondary"}>
+                      {subnode.version?.state === 'published' ? "Published" : "Draft"}
                     </Badge>
                   </TableCell>
-                  <TableCell>{subnode.updated_by || "Unknown"}</TableCell>
-                  <TableCell>
-                    {new Date(subnode.updated_at).toLocaleDateString('en-US', {
-                      year: 'numeric',
-                      month: 'short',
-                      day: 'numeric'
-                    })}
-                  </TableCell>
+                  <TableCell>Unknown</TableCell>
+                  <TableCell>Unknown</TableCell>
                   <TableCell>
                     <Button 
                       size="sm" 
                       variant="outline"
-                      onClick={() => navigate(`/subnodes/${subnode.id}`)}
+                      onClick={() => navigate(`/subnodes/${subnode.family?.id}`)}
                     >
                       <Eye className="h-4 w-4 mr-1" />
                       View

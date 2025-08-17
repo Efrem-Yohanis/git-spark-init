@@ -2,14 +2,16 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { nodeService, type Node, type NodeVersion } from "@/services/nodeService";
+import { nodeService, type Node, type NodeVersionDetail } from "@/services/nodeService";
 import { parameterService, type Parameter } from "@/services/parameterService";
 import { NodeHeader } from "./components/NodeHeader";
 import { NodeSummary } from "./components/NodeSummary";
 import { PropertiesSection } from "./components/PropertiesSection";
 import { SubnodesSection } from "./components/SubnodesSection";
 import { VersionHistoryModal } from "./components/VersionHistoryModal";
+import axios from 'axios';
 
 export function NodeDetailPage() {
   const { id } = useParams();
@@ -21,8 +23,8 @@ export function NodeDetailPage() {
   const [error, setError] = useState<string | null>(null);
   
   // Version management
-  const [nodeVersions, setNodeVersions] = useState<NodeVersion[]>([]);
-  const [selectedVersion, setSelectedVersion] = useState<NodeVersion | null>(null);
+  const [nodeVersions, setNodeVersions] = useState<NodeVersionDetail[]>([]);
+  const [selectedVersion, setSelectedVersion] = useState<NodeVersionDetail | null>(null);
   const [nodeVersionsLoading, setNodeVersionsLoading] = useState(false);
   const [versionHistoryOpen, setVersionHistoryOpen] = useState(false);
   
@@ -31,6 +33,11 @@ export function NodeDetailPage() {
 
   // Parameters management
   const [nodeParameters, setNodeParameters] = useState<Parameter[]>([]);
+  
+  // Script content management
+  const [scriptContent, setScriptContent] = useState<string>("");
+  const [scriptLoading, setScriptLoading] = useState(false);
+  const [scriptError, setScriptError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchNode = async () => {
@@ -40,18 +47,19 @@ export function NodeDetailPage() {
         const nodeData = await nodeService.getNode(id);
         setNode(nodeData);
         
-        // Map parameters from active version or latest version
-        const activeVersion = nodeData.versions.find(v => v.is_deployed) || nodeData.versions[0];
-        const mappedParameters = (activeVersion?.parameters || []).map((param: any) => ({
-          id: param.id,
+        // Map parameters from published version
+        const mappedParameters = (nodeData.published_version?.parameters || []).map((param: any) => ({
+          id: param.parameter_id,
           key: param.key,
-          default_value: param.default_value,
+          default_value: param.value,
           datatype: param.datatype,
           node: nodeData.id,
           required: false, // Default value since not in API
           last_updated_by: null,
-          last_updated_at: nodeData.last_updated_at,
-          is_active: param.is_active
+          last_updated_at: nodeData.updated_at,
+          is_active: true,
+          created_at: nodeData.updated_at || new Date().toISOString(),
+          created_by: null
         }));
         setNodeParameters(mappedParameters);
         
@@ -87,7 +95,7 @@ export function NodeDetailPage() {
       setNodeVersions(versions);
       
       // Set selected version to active version or latest
-      const activeVersion = versions.find(v => v.is_deployed) || versions[0];
+      const activeVersion = versions.find(v => v.state === 'published') || versions[0];
       console.log('🔍 Active version found:', activeVersion);
       console.log('🔍 Subnodes in active version:', activeVersion?.subnodes);
       console.log('🔍 Subnodes length:', activeVersion?.subnodes?.length);
@@ -104,10 +112,62 @@ export function NodeDetailPage() {
     }
   };
 
+  // Fetch script content from URL
+  const fetchScriptContent = async (scriptUrl: string) => {
+    if (!scriptUrl) return;
+    
+    setScriptLoading(true);
+    setScriptError(null);
+    
+    try {
+      // Add CORS headers and better error handling
+      const response = await axios.get(scriptUrl, {
+        headers: {
+          'Accept': 'text/plain, text/x-python, */*'
+        },
+        // Add timeout to prevent hanging
+        timeout: 10000
+      });
+      setScriptContent(response.data);
+    } catch (err: any) {
+      console.error('Error fetching script content:', err);
+      console.error('Error details:', {
+        message: err.message,
+        status: err.response?.status,
+        statusText: err.response?.statusText,
+        url: scriptUrl
+      });
+      
+      let errorMessage = 'Failed to load script content';
+      if (err.code === 'ECONNABORTED') {
+        errorMessage = 'Request timed out - server may be unavailable';
+      } else if (err.response?.status === 404) {
+        errorMessage = 'Script file not found';
+      } else if (err.response?.status === 403) {
+        errorMessage = 'Access denied to script file';
+      } else if (err.message.includes('CORS')) {
+        errorMessage = 'CORS error - unable to fetch script from external server';
+      }
+      
+      setScriptError(errorMessage);
+      setScriptContent('');
+    } finally {
+      setScriptLoading(false);
+    }
+  };
+
+  // Effect to fetch script content when selected version changes
+  useEffect(() => {
+    if (selectedVersion?.script_url) {
+      fetchScriptContent(selectedVersion.script_url);
+    } else if (node?.published_version?.script_url) {
+      fetchScriptContent(node.published_version.script_url);
+    }
+  }, [selectedVersion?.script_url, node?.published_version?.script_url]);
 
   // Event handlers
   const handleEditVersion = () => {
-    if (selectedVersion && !selectedVersion.is_deployed) {
+    if (selectedVersion && selectedVersion.state !== 'published') {
       navigate(`/nodes/${id}/edit?version=${selectedVersion.version}`);
     }
   };
@@ -120,7 +180,7 @@ export function NodeDetailPage() {
     if (!selectedVersion || !id) return;
     
     try {
-      if (selectedVersion.is_deployed) {
+      if (selectedVersion.state === 'published') {
         // Undeploy the version
         await nodeService.undeployNodeVersion(id, selectedVersion.version);
         toast({
@@ -134,7 +194,7 @@ export function NodeDetailPage() {
         if (activeNode && activeNode.id !== id) {
           // Show confirmation dialog for deactivating current active node
           const shouldProceed = window.confirm(
-            `Node "${activeNode.name}" (v${activeNode.active_version}) is currently active. ` +
+            `Node "${activeNode.name}" is currently active. ` +
             `Activating this node will deactivate "${activeNode.name}". Do you want to proceed?`
           );
           
@@ -171,7 +231,7 @@ export function NodeDetailPage() {
     }
   };
 
-  const handleSelectVersion = (version: NodeVersion) => {
+  const handleSelectVersion = (version: NodeVersionDetail) => {
     setSelectedVersion(version);
     setVersionHistoryOpen(false);
     toast({
@@ -180,7 +240,7 @@ export function NodeDetailPage() {
     });
   };
 
-  const activateNodeVersion = async (version: NodeVersion) => {
+  const activateNodeVersion = async (version: NodeVersionDetail) => {
     if (!id) return;
     
     try {
@@ -190,7 +250,7 @@ export function NodeDetailPage() {
       if (activeNode && activeNode.id !== id) {
         // Show confirmation dialog for deactivating current active node
         const shouldProceed = window.confirm(
-          `Node "${activeNode.name}" (v${activeNode.active_version}) is currently active. ` +
+          `Node "${activeNode.name}" is currently active. ` +
           `Activating this node will deactivate "${activeNode.name}". Do you want to proceed?`
         );
         
@@ -225,10 +285,10 @@ export function NodeDetailPage() {
 
   // Version management handlers
   const handleDeleteVersion = async () => {
-    if (!selectedVersion || !id || selectedVersion.is_deployed) {
+    if (!selectedVersion || !id || selectedVersion.state === 'published') {
       toast({
         title: "Cannot Delete Version",
-        description: selectedVersion?.is_deployed ? "Cannot delete a deployed version" : "No version selected",
+        description: selectedVersion?.state === 'published' ? "Cannot delete a published version" : "No version selected",
         variant: "destructive"
       });
       return;
@@ -266,7 +326,7 @@ export function NodeDetailPage() {
 
     try {
       // Create new version from current version
-      const newVersion = await nodeService.createNodeVersion(id, selectedVersion.version);
+      const newVersion = await nodeService.createNewNodeVersion(id, selectedVersion.version);
       
       toast({
         title: "Version Cloned",
@@ -314,7 +374,6 @@ export function NodeDetailPage() {
     });
   };
 
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
@@ -345,7 +404,6 @@ export function NodeDetailPage() {
     );
   }
 
-
   return (
     <div className="space-y-6">
       {/* Current Active Node Warning */}
@@ -354,7 +412,7 @@ export function NodeDetailPage() {
           <div className="flex items-center space-x-2">
             <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></div>
             <span className="text-yellow-800 font-medium">
-              Another node is currently active: "{currentActiveNode.name}" (v{currentActiveNode.active_version})
+              Another node is currently active: "{currentActiveNode.name}"
             </span>
           </div>
           <p className="text-yellow-700 text-sm mt-1">
@@ -387,26 +445,55 @@ export function NodeDetailPage() {
         subnodesCount={selectedVersion?.subnodes?.length || 0}
       />
 
-      <Separator />
-
-      {/* Properties Section */}
-      <PropertiesSection
-        properties={nodeParameters}
-        loading={false}
-      />
-
-      <Separator />
-
-      {/* Subnodes Section */}
-      {(() => {
-        console.log('🔍 Rendering SubnodesSection - selectedVersion:', selectedVersion);
-        console.log('🔍 Rendering SubnodesSection - subnodes:', selectedVersion?.subnodes);
-        return (
+      {/* Tabbed Sections */}
+      <Tabs defaultValue="parameters" className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="parameters">Parameters</TabsTrigger>
+          <TabsTrigger value="subnodes">Subnodes</TabsTrigger>
+          <TabsTrigger value="script">Script</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="parameters" className="space-y-4">
+          <PropertiesSection
+            properties={nodeParameters}
+            loading={false}
+          />
+        </TabsContent>
+        
+        <TabsContent value="subnodes" className="space-y-4">
           <SubnodesSection
             subnodes={selectedVersion?.subnodes || []}
           />
-        );
-      })()}
+        </TabsContent>
+        
+        <TabsContent value="script" className="space-y-4">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold">Python Script</h3>
+              <span className="text-sm text-muted-foreground">
+                Version {selectedVersion?.version || node.published_version?.version}
+              </span>
+            </div>
+            <div className="relative">
+              {scriptLoading ? (
+                <div className="flex items-center justify-center h-32 bg-muted rounded-lg">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                </div>
+              ) : scriptError ? (
+                <div className="bg-destructive/10 border border-destructive/20 text-destructive p-4 rounded-lg">
+                  {scriptError}
+                </div>
+              ) : (
+                <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-sm max-h-96 overflow-y-auto">
+                  <code className="language-python whitespace-pre-wrap">
+                    {scriptContent || "No script content available"}
+                  </code>
+                </pre>
+              )}
+            </div>
+          </div>
+        </TabsContent>
+      </Tabs>
 
       {/* Version History Modal */}
       <VersionHistoryModal

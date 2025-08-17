@@ -171,12 +171,19 @@ export const flowService = {
 
   // Get deployed nodes for flow editor - now uses real API
   async getDeployedNodes(): Promise<DeployedNode[]> {
-    const response = await axiosInstance.get('nodes/');
-    return response.data.map((node: any) => ({
-      id: node.id,
-      name: node.name,
-      subnodes: node.subnodes || []
-    }));
+    try {
+      const response = await axiosInstance.get('node-families/');
+      // Handle the paginated response structure
+      const results = Array.isArray(response.data) ? response.data : (response.data.results || []);
+      return results.map((node: any) => ({
+        id: node.id,
+        name: node.name,
+        subnodes: node.versions?.[0]?.subnodes || []
+      }));
+    } catch (error) {
+      console.warn('Node families API failed, using mock nodes:', error);
+      return mockDeployedNodes;
+    }
   },
 
   // Add node to flow
