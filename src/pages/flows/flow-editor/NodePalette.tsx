@@ -1,4 +1,3 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { nodeService } from '@/services/nodeService';
@@ -12,8 +11,7 @@ import {
   Activity,
   FileText,
   Globe,
-  Plus,
-  Loader2
+  Plus
 } from 'lucide-react';
 
 interface NodePaletteProps {
@@ -21,8 +19,9 @@ interface NodePaletteProps {
 }
 
 // Icon mapping for different node types
-const getNodeIcon = (nodeName: string) => {
-  const name = nodeName.toLowerCase();
+const getNodeIcon = (nodeName?: string) => {
+  const name = (nodeName ?? '').toLowerCase();
+  if (!name) return Activity;
   if (name.includes('sftp') || name.includes('collector')) return Database;
   if (name.includes('fdc')) return CheckCircle;
   if (name.includes('asn1') || name.includes('decoder')) return Activity;
@@ -36,8 +35,9 @@ const getNodeIcon = (nodeName: string) => {
 };
 
 // Color mapping for different node types
-const getNodeColor = (nodeName: string) => {
-  const name = nodeName.toLowerCase();
+const getNodeColor = (nodeName?: string) => {
+  const name = (nodeName ?? '').toLowerCase();
+  if (!name) return 'bg-blue-500';
   if (name.includes('sftp') || name.includes('collector')) return 'bg-blue-500';
   if (name.includes('fdc')) return 'bg-green-500';
   if (name.includes('asn1') || name.includes('decoder')) return 'bg-purple-500';
@@ -75,78 +75,69 @@ export function NodePalette({ onAddNode }: NodePaletteProps) {
 
   if (loading) {
     return (
-      <Card className="bg-card border-border h-full">
-        <CardHeader>
-          <CardTitle className="text-foreground flex items-center gap-2">
-            <Database className="h-5 w-5" />
-            Available Nodes
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-center h-32">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-          </div>
-        </CardContent>
-      </Card>
+      <div className="space-y-2">
+        <div className="flex items-center gap-2 mb-4">
+          <Database className="h-5 w-5" />
+          <h3 className="font-semibold">Available Nodes</h3>
+        </div>
+        <div className="flex items-center justify-center h-32">
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+        </div>
+      </div>
     );
   }
 
   if (error) {
     return (
-      <Card className="bg-card border-border h-full">
-        <CardHeader>
-          <CardTitle className="text-foreground flex items-center gap-2">
-            <Database className="h-5 w-5" />
-            Available Nodes
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center space-y-2">
-            <p className="text-sm text-destructive">{error}</p>
-            <Button 
-              onClick={fetchNodes} 
-              size="sm" 
-              variant="outline"
-              className="text-xs"
-            >
-              Retry
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="space-y-2">
+        <div className="flex items-center gap-2 mb-4">
+          <Database className="h-5 w-5" />
+          <h3 className="font-semibold">Available Nodes</h3>
+        </div>
+        <div className="text-center space-y-2">
+          <p className="text-sm text-destructive">{error}</p>
+          <Button 
+            onClick={fetchNodes} 
+            size="sm" 
+            variant="outline"
+            className="text-xs"
+          >
+            Retry
+          </Button>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Card className="bg-card border-border h-full">
-      <CardHeader>
-        <CardTitle className="text-foreground flex items-center gap-2">
-          <Database className="h-5 w-5" />
-          Available Nodes
-          <Badge variant="secondary" className="ml-auto">
-            {nodes.length}
-          </Badge>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-2">
-        {nodes.length === 0 ? (
-          <div className="text-center py-8">
-            <p className="text-sm text-muted-foreground">
-              No nodes available
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Create and deploy some nodes first to use them in flows
-            </p>
-          </div>
-        ) : (
-          nodes.map((node) => {
+    <div className="space-y-2">
+      <div className="flex items-center gap-2 mb-4">
+        <Database className="h-5 w-5" />
+        <h3 className="font-semibold">Available Nodes</h3>
+        <Badge variant="secondary" className="ml-auto">
+          {nodes.length}
+        </Badge>
+      </div>
+      
+      {nodes.length === 0 ? (
+        <div className="text-center py-8">
+          <p className="text-sm text-muted-foreground">
+            No nodes available
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Create and deploy some nodes first to use them in flows
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {nodes.map((node) => {
             const Icon = getNodeIcon(node.name);
             const colorClass = getNodeColor(node.name);
             
             return (
               <div
                 key={node.id}
-                className="group border border-border rounded-lg p-3 hover:bg-muted/50 transition-colors cursor-grab active:cursor-grabbing"
+                className="group border border-border p-3 hover:bg-muted/50 transition-colors cursor-grab active:cursor-grabbing"
                 draggable
                 onDragStart={(event) => {
                   event.dataTransfer.setData('application/reactflow', node.id);
@@ -155,7 +146,7 @@ export function NodePalette({ onAddNode }: NodePaletteProps) {
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-start gap-2 flex-1">
-                    <div className={`p-1.5 rounded ${colorClass} text-white flex-shrink-0`}>
+                    <div className={`p-1.5 ${colorClass} text-white flex-shrink-0`}>
                       <Icon className="h-3 w-3" />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -178,9 +169,9 @@ export function NodePalette({ onAddNode }: NodePaletteProps) {
                 </div>
               </div>
             );
-          })
-        )}
-      </CardContent>
-    </Card>
+          })}
+        </div>
+      )}
+    </div>
   );
 }

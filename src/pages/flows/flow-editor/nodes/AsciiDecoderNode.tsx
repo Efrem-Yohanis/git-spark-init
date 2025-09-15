@@ -17,7 +17,7 @@ export const AsciiDecoderNode = memo(({ data, selected }: AsciiDecoderNodeProps)
   return (
     <div 
       className={`
-        bg-node-background border-2 rounded-lg p-4 min-w-[200px] shadow-node
+        bg-node-background border-2 p-4 min-w-[200px] shadow-node
         ${selected ? 'border-primary' : 'border-node-border'}
         transition-all duration-200
       `}
@@ -42,7 +42,7 @@ export const AsciiDecoderNode = memo(({ data, selected }: AsciiDecoderNodeProps)
         
         <div className="flex items-center gap-2">
           <Badge variant="outline" className="text-xs">
-            ASCII Decoder
+            {data.label}
           </Badge>
           {data.subnodes && (
             <Badge variant="secondary" className="text-xs">

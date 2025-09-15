@@ -53,7 +53,7 @@ export const SftpCollectorNode = memo(({ data, selected }: SftpCollectorNodeProp
   return (
     <div 
       className={`
-        bg-node-background border-2 rounded-lg p-4 min-w-[200px] shadow-node relative
+        bg-node-background border-2 p-4 min-w-[200px] shadow-node relative
         ${selected ? 'border-primary' : 'border-node-border'}
         transition-all duration-200
       `}
@@ -73,7 +73,7 @@ export const SftpCollectorNode = memo(({ data, selected }: SftpCollectorNodeProp
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Badge variant="outline" className="text-xs">
-              SFTP Collector
+              {data.label}
             </Badge>
             {data.active_version !== null ? (
               <Badge variant="default" className="text-xs bg-green-500 text-white">

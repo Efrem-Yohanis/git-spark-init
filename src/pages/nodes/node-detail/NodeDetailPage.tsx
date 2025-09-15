@@ -11,7 +11,10 @@ import { NodeSummary } from "./components/NodeSummary";
 import { PropertiesSection } from "./components/PropertiesSection";
 import { SubnodesSection } from "./components/SubnodesSection";
 import { VersionHistoryModal } from "./components/VersionHistoryModal";
+import { CreateVersionModal } from "./components/CreateVersionModal";
+import { FileText } from "lucide-react";
 import axios from 'axios';
+import { LoadingSpinner } from "@/components/ui/loading";
 
 export function NodeDetailPage() {
   const { id } = useParams();
@@ -27,12 +30,13 @@ export function NodeDetailPage() {
   const [selectedVersion, setSelectedVersion] = useState<NodeVersionDetail | null>(null);
   const [nodeVersionsLoading, setNodeVersionsLoading] = useState(false);
   const [versionHistoryOpen, setVersionHistoryOpen] = useState(false);
+  const [createVersionOpen, setCreateVersionOpen] = useState(false);
   
   // Active node checking
   const [currentActiveNode, setCurrentActiveNode] = useState<Node | null>(null);
 
   // Parameters management
-  const [nodeParameters, setNodeParameters] = useState<Parameter[]>([]);
+  const [nodeParameters, setNodeParameters] = useState<any[]>([]);
   
   // Script content management
   const [scriptContent, setScriptContent] = useState<string>("");
@@ -47,21 +51,8 @@ export function NodeDetailPage() {
         const nodeData = await nodeService.getNode(id);
         setNode(nodeData);
         
-        // Map parameters from published version
-        const mappedParameters = (nodeData.published_version?.parameters || []).map((param: any) => ({
-          id: param.parameter_id,
-          key: param.key,
-          default_value: param.value,
-          datatype: param.datatype,
-          node: nodeData.id,
-          required: false, // Default value since not in API
-          last_updated_by: null,
-          last_updated_at: nodeData.updated_at,
-          is_active: true,
-          created_at: nodeData.updated_at || new Date().toISOString(),
-          created_by: null
-        }));
-        setNodeParameters(mappedParameters);
+        // Initialize with empty parameters, will be set when version is selected
+        setNodeParameters([]);
         
         // Fetch initial data
         await fetchNodeVersions();
@@ -100,6 +91,11 @@ export function NodeDetailPage() {
       console.log('🔍 Subnodes in active version:', activeVersion?.subnodes);
       console.log('🔍 Subnodes length:', activeVersion?.subnodes?.length);
       setSelectedVersion(activeVersion);
+      
+      // Set parameters from selected version
+      if (activeVersion?.parameters) {
+        setNodeParameters(activeVersion.parameters);
+      }
     } catch (err: any) {
       console.error('Error fetching node versions:', err);
       toast({
@@ -112,41 +108,28 @@ export function NodeDetailPage() {
     }
   };
 
-  // Fetch script content from URL
-  const fetchScriptContent = async (scriptUrl: string) => {
-    if (!scriptUrl) return;
+  // Fetch script content from version
+  const fetchScriptContent = async (familyId: string, versionNumber: number) => {
+    if (!familyId || !versionNumber) return;
     
     setScriptLoading(true);
     setScriptError(null);
     
     try {
-      // Add CORS headers and better error handling
-      const response = await axios.get(scriptUrl, {
-        headers: {
-          'Accept': 'text/plain, text/x-python, */*'
-        },
-        // Add timeout to prevent hanging
-        timeout: 10000
-      });
-      setScriptContent(response.data);
+      const scriptContent = await nodeService.getVersionScript(familyId, versionNumber);
+      setScriptContent(scriptContent);
     } catch (err: any) {
       console.error('Error fetching script content:', err);
-      console.error('Error details:', {
-        message: err.message,
-        status: err.response?.status,
-        statusText: err.response?.statusText,
-        url: scriptUrl
-      });
       
-      let errorMessage = 'Failed to load script content';
-      if (err.code === 'ECONNABORTED') {
-        errorMessage = 'Request timed out - server may be unavailable';
-      } else if (err.response?.status === 404) {
+      let errorMessage = err.message || 'Failed to load script content';
+      
+      // Handle specific error cases
+      if (err.message?.includes('404')) {
         errorMessage = 'Script file not found';
-      } else if (err.response?.status === 403) {
+      } else if (err.message?.includes('403')) {
         errorMessage = 'Access denied to script file';
-      } else if (err.message.includes('CORS')) {
-        errorMessage = 'CORS error - unable to fetch script from external server';
+      } else if (err.message?.includes('500')) {
+        errorMessage = 'Server error while fetching script';
       }
       
       setScriptError(errorMessage);
@@ -158,22 +141,46 @@ export function NodeDetailPage() {
 
   // Effect to fetch script content when selected version changes
   useEffect(() => {
-    if (selectedVersion?.script_url) {
-      fetchScriptContent(selectedVersion.script_url);
-    } else if (node?.published_version?.script_url) {
-      fetchScriptContent(node.published_version.script_url);
+    if (selectedVersion) {
+      fetchScriptContent(selectedVersion.family, selectedVersion.version);
+    } else if (node?.published_version) {
+      fetchScriptContent(node.published_version.family, node.published_version.version);
     }
-  }, [selectedVersion?.script_url, node?.published_version?.script_url]);
+  }, [selectedVersion, node?.published_version]);
 
   // Event handlers
   const handleEditVersion = () => {
     if (selectedVersion && selectedVersion.state !== 'published') {
-      navigate(`/nodes/${id}/edit?version=${selectedVersion.version}`);
+      navigate(`/nodes/${id}/edit-version?version=${selectedVersion.version}`);
     }
   };
 
   const handleCreateNewVersion = () => {
-    navigate(`/nodes/${id}/edit?newVersion=true`);
+    setCreateVersionOpen(true);
+  };
+
+  const handleCreateVersionSubmit = async (changelog: string) => {
+    if (!id) return;
+    
+    try {
+      await nodeService.createNodeVersionWithChangelog(id, changelog);
+      setCreateVersionOpen(false);
+      
+      // Refresh versions list
+      await fetchNodeVersions();
+      
+      toast({
+        title: "Version Created",
+        description: "New version created successfully",
+      });
+    } catch (error) {
+      console.error('Failed to create version:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create new version",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleToggleDeployment = async () => {
@@ -188,22 +195,7 @@ export function NodeDetailPage() {
           description: `Version ${selectedVersion.version} has been undeployed`,
         });
       } else {
-        // Check if another node is currently active
-        const activeNode = await nodeService.getActiveNode();
-        
-        if (activeNode && activeNode.id !== id) {
-          // Show confirmation dialog for deactivating current active node
-          const shouldProceed = window.confirm(
-            `Node "${activeNode.name}" is currently active. ` +
-            `Activating this node will deactivate "${activeNode.name}". Do you want to proceed?`
-          );
-          
-          if (!shouldProceed) {
-            return;
-          }
-        }
-        
-        // Deploy/activate version
+        // Deploy the version (will automatically deactivate other versions of this node)
         await nodeService.deployNodeVersion(id, selectedVersion.version);
         toast({
           title: "Node Activated",
@@ -234,6 +226,8 @@ export function NodeDetailPage() {
   const handleSelectVersion = (version: NodeVersionDetail) => {
     setSelectedVersion(version);
     setVersionHistoryOpen(false);
+    // Update parameters for the selected version
+    setNodeParameters(version.parameters || []);
     toast({
       title: "Version Selected",
       description: `Now viewing version ${version.version}`,
@@ -244,22 +238,7 @@ export function NodeDetailPage() {
     if (!id) return;
     
     try {
-      // Check if another node is currently active
-      const activeNode = await nodeService.getActiveNode();
-      
-      if (activeNode && activeNode.id !== id) {
-        // Show confirmation dialog for deactivating current active node
-        const shouldProceed = window.confirm(
-          `Node "${activeNode.name}" is currently active. ` +
-          `Activating this node will deactivate "${activeNode.name}". Do you want to proceed?`
-        );
-        
-        if (!shouldProceed) {
-          return;
-        }
-      }
-      
-      // Deploy the version using new API
+      // Deploy the version (will automatically deactivate other versions of this node)
       await nodeService.deployNodeVersion(id, version.version);
       
       toast({
@@ -335,7 +314,7 @@ export function NodeDetailPage() {
 
       // Refresh versions and navigate to edit the new version
       await fetchNodeVersions();
-      navigate(`/nodes/${id}/edit?version=${newVersion.version}`);
+      navigate(`/nodes/${id}/edit-version?version=${newVersion.version}`);
     } catch (err: any) {
       console.error('Error cloning version:', err);
       toast({
@@ -377,7 +356,7 @@ export function NodeDetailPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <LoadingSpinner size="lg" />
       </div>
     );
   }
@@ -406,28 +385,14 @@ export function NodeDetailPage() {
 
   return (
     <div className="space-y-6">
-      {/* Current Active Node Warning */}
-      {currentActiveNode && currentActiveNode.id !== node.id && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-          <div className="flex items-center space-x-2">
-            <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></div>
-            <span className="text-yellow-800 font-medium">
-              Another node is currently active: "{currentActiveNode.name}"
-            </span>
-          </div>
-          <p className="text-yellow-700 text-sm mt-1">
-            Activating this node will automatically deactivate the currently active node.
-          </p>
-        </div>
-      )}
 
       {/* Header Section */}
       <NodeHeader
         node={node}
         selectedVersion={selectedVersion}
-        onEditVersion={handleEditVersion}
+        onEditVersion={() => {}} // Disabled for configuration view
         onToggleDeployment={handleToggleDeployment}
-        onCreateNewVersion={handleCreateNewVersion}
+        onCreateNewVersion={() => {}} // Disabled for configuration view
         onShowVersionHistory={handleShowVersionHistory}
         onDeleteVersion={handleDeleteVersion}
         onCloneVersion={handleCloneVersion}
@@ -470,18 +435,47 @@ export function NodeDetailPage() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold">Python Script</h3>
-              <span className="text-sm text-muted-foreground">
-                Version {selectedVersion?.version || node.published_version?.version}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">
+                  Version {selectedVersion?.version || node.published_version?.version}
+                </span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    if (scriptContent) {
+                      navigator.clipboard.writeText(scriptContent);
+                      toast({
+                        title: "Code copied!",
+                        description: "Script content has been copied to clipboard",
+                      });
+                    }
+                  }}
+                  disabled={!scriptContent || scriptLoading || !!scriptError}
+                  className="gap-2"
+                >
+                  <FileText className="h-4 w-4" />
+                  Copy
+                </Button>
+              </div>
             </div>
             <div className="relative">
               {scriptLoading ? (
                 <div className="flex items-center justify-center h-32 bg-muted rounded-lg">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                  <div className="flex items-center gap-2">
+                    <div className="animate-spin rounded-full h-5 w-5 border-2 border-primary border-t-transparent"></div>
+                    <span className="text-sm text-muted-foreground">Loading script...</span>
+                  </div>
                 </div>
               ) : scriptError ? (
                 <div className="bg-destructive/10 border border-destructive/20 text-destructive p-4 rounded-lg">
-                  {scriptError}
+                  <div className="font-medium">Script Loading Error</div>
+                  <div className="text-sm mt-1">{scriptError}</div>
+                  {scriptError.includes('backend server needs to configure URL routing') && (
+                    <div className="text-xs mt-2 text-muted-foreground">
+                      The backend server needs to add URL patterns to serve script files from the /node_scripts/ path.
+                    </div>
+                  )}
                 </div>
               ) : (
                 <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-sm max-h-96 overflow-y-auto">
@@ -504,6 +498,14 @@ export function NodeDetailPage() {
         onSelectVersion={handleSelectVersion}
         onActivateVersion={activateNodeVersion}
         isLoading={nodeVersionsLoading}
+      />
+
+      {/* Create Version Modal */}
+      <CreateVersionModal
+        open={createVersionOpen}
+        onOpenChange={setCreateVersionOpen}
+        onCreateVersion={handleCreateVersionSubmit}
+        isLoading={loading}
       />
 
       {/* Back to Nodes Button */}

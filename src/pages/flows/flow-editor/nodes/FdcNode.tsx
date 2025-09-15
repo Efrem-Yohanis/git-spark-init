@@ -17,7 +17,7 @@ export const FdcNode = memo(({ data, selected }: FdcNodeProps) => {
   return (
     <div 
       className={`
-        bg-node-background border-2 rounded-lg p-4 min-w-[200px] shadow-node
+        bg-node-background border-2 p-4 min-w-[200px] shadow-node
         ${selected ? 'border-primary' : 'border-node-border'}
         transition-all duration-200
       `}
@@ -42,7 +42,7 @@ export const FdcNode = memo(({ data, selected }: FdcNodeProps) => {
         
         <div className="flex items-center gap-2">
           <Badge variant="outline" className="text-xs">
-            FDC
+            {data.label}
           </Badge>
           {data.subnodes && (
             <Badge variant="secondary" className="text-xs">
