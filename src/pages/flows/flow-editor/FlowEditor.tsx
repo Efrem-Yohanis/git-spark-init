@@ -14,6 +14,7 @@ import {
   Position,
   Handle,
   BackgroundVariant,
+  MarkerType,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { Button } from '@/components/ui/button';
@@ -149,11 +150,24 @@ export function FlowEditor() {
     async (params: Connection) => {
       console.log('🔗 Connecting nodes:', params);
       
-      // Add edge with smoothstep style (matching streams page)
-      setEdges((eds) => addEdge({
+      // Add edge with same styling as FlowPipeline
+      const newEdge = {
         ...params,
-        type: 'smoothstep',
-      }, eds));
+        type: 'bezier', // Use bezier curves for flexible connections
+        animated: true,
+        style: {
+          stroke: 'hsl(var(--primary))',
+          strokeWidth: 3,
+        },
+        markerEnd: {
+          type: MarkerType.ArrowClosed,
+          color: 'hsl(var(--primary))',
+          width: 20,
+          height: 20,
+        },
+      };
+      
+      setEdges((eds) => addEdge(newEdge, eds));
       
       if (flowId && params.target && params.source) {
         try {
