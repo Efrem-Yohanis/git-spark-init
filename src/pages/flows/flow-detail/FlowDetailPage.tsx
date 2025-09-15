@@ -12,7 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { LoadingCard } from "@/components/ui/loading";
-import { FlowCanvas } from "./FlowCanvas";
+import { FlowPipeline } from "@/components/FlowPipeline";
 import { 
   ArrowLeft,
   Play, 
@@ -59,6 +59,7 @@ export function FlowDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [description, setDescription] = useState("");
   const [isEditingDescription, setIsEditingDescription] = useState(false);
+  const [viewMode, setViewMode] = useState<"graph" | "list">("graph");
 
   useEffect(() => {
     const fetchFlowStructure = async () => {
@@ -95,16 +96,16 @@ export function FlowDetailPage() {
   const getNodeType = (nodeName?: string): string => {
     const name = (nodeName ?? '').toLowerCase();
     if (!name) return 'generic';
-    if (name.includes('sftp') || name.includes('collector')) return 'sftp_collector';
-    if (name.includes('fdc')) return 'fdc';
-    if (name.includes('asn1') || name.includes('decoder')) return 'asn1_decoder';
-    if (name.includes('ascii')) return 'ascii_decoder';
-    if (name.includes('validation')) return 'validation_bln';
-    if (name.includes('enrichment')) return 'enrichment_bln';
-    if (name.includes('encoder')) return 'encoder';
-    if (name.includes('diameter')) return 'diameter_interface';
-    if (name.includes('backup')) return 'raw_backup';
-    return 'generic';
+    if (name.includes('sftp') || name.includes('collector')) return 'Collector';
+    if (name.includes('fdc')) return 'Processor';
+    if (name.includes('asn1') || name.includes('decoder')) return 'Decoder';
+    if (name.includes('ascii')) return 'Decoder';
+    if (name.includes('validation')) return 'Validator';
+    if (name.includes('enrichment')) return 'Enricher';
+    if (name.includes('encoder')) return 'Encoder';
+    if (name.includes('diameter')) return 'Interface';
+    if (name.includes('backup')) return 'Backup';
+    return 'Processor';
   };
 
   // Create unique nodes map to avoid duplicates
@@ -115,42 +116,11 @@ export function FlowDetailPage() {
     }
   });
 
-  // Prepare nodes from the unique nodes with proper positioning  
-  const nodes = Array.from(uniqueNodes.values()).map((node, index) => {
-    const nodeType = getNodeType(node.name);
-    
-    return {
-      id: node.id,
-      type: nodeType,
-      position: { 
-        x: (index % 4) * 300 + 100,
-        y: Math.floor(index / 4) * 200 + 100 
-      },
-      data: {
-        label: node.name,
-        description: `Order: ${node.order}`,
-        node: node,
-        selected_subnode: node.selected_subnode_id ? { id: node.selected_subnode_id } : undefined,
-        parameters: [],
-        subnodes: [],
-      },
-    };
-  });
-
-  // Prepare edges from flow edges
-  const edges = flow.edges?.map((edge) => ({
-    id: edge.id,
-    source: edge.from_node,
-    target: edge.to_node,
-    animated: true,
-    label: edge.condition || undefined,
-  })) || [];
-
-  // Convert nodes for table list view
+  // Convert nodes for FlowPipeline component (same format as StreamDetailPage)
   const nodesData = Array.from(uniqueNodes.values()).map((node) => ({
     id: node.id,
     name: node.name,
-    type: node.type || "Generic",
+    type: getNodeType(node.name),
     status: flow.is_running ? "RUNNING" : "STOPPED",
     scheduling: "Real-time",
     processed: Math.floor(Math.random() * 50000),
@@ -223,16 +193,21 @@ export function FlowDetailPage() {
                 className="gap-2"
               >
                 <ArrowLeft className="h-4 w-4" />
-                back
+                Back to Dashboard
               </Button>
               
-              <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-bold text-foreground">
-                  {flow.name}
-                </h1>
-                <Badge variant="outline" className="text-xs">
-                  v{flow.version}
-                </Badge>
+              <div className="space-y-1">
+                <div className="text-xs text-muted-foreground">
+                  Dashboard → Flows → {flow.name}
+                </div>
+                <div className="flex items-center gap-3">
+                  <h1 className="text-2xl font-bold text-foreground">
+                    {flow.name}
+                  </h1>
+                  <Badge variant="outline" className="text-xs">
+                    v{flow.version}
+                  </Badge>
+                </div>
               </div>
             </div>
 
@@ -377,18 +352,19 @@ export function FlowDetailPage() {
               <div className="space-y-2">
                 <Label className="text-sm font-medium text-muted-foreground flex items-center gap-1">
                   <GitBranch className="h-4 w-4" />
-                  Version
+                  Version Information
                 </Label>
-                <div className="text-sm font-medium text-foreground">v{flow.version}</div>
+                <div className="text-sm font-medium text-foreground">Current: v{flow.version}</div>
+                <div className="text-xs text-muted-foreground">Based on: v{Math.max(1, flow.version - 1)}</div>
               </div>
 
               {/* Node Count */}
               <div className="space-y-2">
                 <Label className="text-sm font-medium text-muted-foreground flex items-center gap-1">
                   <Network className="h-4 w-4" />
-                  Nodes
+                  Host Count
                 </Label>
-                <div className="text-sm font-medium text-foreground">{flow.nodes?.length || 0} nodes</div>
+                <div className="text-sm font-medium text-foreground">2 hosts</div>
               </div>
 
               {/* Created By */}
@@ -401,10 +377,10 @@ export function FlowDetailPage() {
               <div className="space-y-2">
                 <Label className="text-sm font-medium text-muted-foreground flex items-center gap-1">
                   <Clock className="h-4 w-4" />
-                  Last Updated
+                  Last Started
                 </Label>
                 <div className="text-sm font-medium text-foreground">
-                  {flow.updated_at ? new Date(flow.updated_at).toLocaleString() : 'Unknown'}
+                  {flow.updated_at ? new Date(flow.updated_at).toLocaleString() : '2024-01-12 23:15:30'}
                 </div>
               </div>
             </div>
@@ -448,7 +424,7 @@ export function FlowDetailPage() {
                 </div>
               ) : (
                 <div 
-                  className="text-sm text-foreground p-3 bg-muted/50 cursor-pointer hover:bg-muted border border-dashed border-muted-foreground/30"
+                  className="text-sm text-foreground p-3 rounded-md bg-muted/50 cursor-pointer hover:bg-muted"
                   onClick={() => setIsEditingDescription(true)}
                 >
                   {description || "Click to add description..."}
@@ -458,129 +434,279 @@ export function FlowDetailPage() {
           </CardContent>
         </Card>
 
-        {/* Flow Pipeline - Graph and List Views */}
+        {/* Flow / Nodes View */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Network className="h-5 w-5" />
-              Flow Pipeline
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Tabs defaultValue="graph" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="graph" className="flex items-center gap-2">
-                  <Network className="h-4 w-4" />
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <Network className="h-5 w-5" />
+                Flow Pipeline
+              </CardTitle>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant={viewMode === "graph" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setViewMode("graph")}
+                  className="gap-2"
+                >
+                  <Eye className="h-4 w-4" />
                   Graph View
-                </TabsTrigger>
-                <TabsTrigger value="list" className="flex items-center gap-2">
+                </Button>
+                <Button
+                  variant={viewMode === "list" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setViewMode("list")}
+                  className="gap-2"
+                >
                   <List className="h-4 w-4" />
                   List View
-                </TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="graph" className="mt-6">
-                {/* Graph View - ReactFlow Canvas */}
-                <div className="h-[600px] w-full bg-background border">
-                  <FlowCanvas 
-                    nodes={nodes} 
-                    edges={edges} 
-                    onNodeSelect={() => {}} 
-                  />
-                </div>
-              </TabsContent>
-              
-              <TabsContent value="list" className="mt-6">
-                {/* List View - Table */}
-                <div className="border">
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead className="border-b bg-muted/50">
-                        <tr>
-                          <th className="text-left p-4 font-medium">Node Name</th>
-                          <th className="text-left p-4 font-medium">Type</th>
-                          <th className="text-left p-4 font-medium">Status</th>
-                          <th className="text-left p-4 font-medium">Order</th>
-                          <th className="text-left p-4 font-medium">Subnode</th>
-                          <th className="text-left p-4 font-medium">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {nodesData.map((node) => (
-                          <tr key={node.id} className="border-b hover:bg-muted/30">
-                            <td className="p-4 font-medium">{node.name}</td>
-                            <td className="p-4">
-                              <Badge variant="outline" className="capitalize">
-                                {node.type}
-                              </Badge>
-                            </td>
-                            <td className="p-4">
-                              <Badge className={getStatusColor(node.status)}>
-                                <Activity className="h-3 w-3 mr-1" />
-                                <span className="capitalize">{node.status}</span>
-                              </Badge>
-                            </td>
-                            <td className="p-4">
-                              <span className="text-sm text-muted-foreground">
-                                #{flow.nodes?.find(n => n.id === node.id)?.order || 'N/A'}
-                              </span>
-                            </td>
-                            <td className="p-4">
-                              <code className="text-xs bg-muted px-2 py-1">
-                                {node.subnodeName}
-                              </code>
-                            </td>
-                             <td className="p-4">
-                               <div className="flex gap-1">
-                                 <Button 
-                                   size="sm" 
-                                   variant="outline"
-                                   onClick={() => toast({ title: "Node Started", description: `${node.name} has been started.` })}
-                                   title="Start"
-                                 >
-                                   <Play className="h-3 w-3" />
-                                 </Button>
-                                 <Button 
-                                   size="sm" 
-                                   variant="outline"
-                                   onClick={() => toast({ title: "Node Stopped", description: `${node.name} has been stopped.` })}
-                                   title="Stop"
-                                 >
-                                   <Square className="h-3 w-3" />
-                                 </Button>
-                                 <Button 
-                                   size="sm" 
-                                   variant="outline"
-                                   onClick={() => toast({ title: "Node Restarted", description: `${node.name} has been restarted.` })}
-                                   title="Restart"
-                                 >
-                                   <RotateCcw className="h-3 w-3" />
-                                 </Button>
-                               </div>
-                             </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </TabsContent>
-            </Tabs>
+                </Button>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {viewMode === "graph" ? (
+              <FlowPipeline nodesData={nodesData} />
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Node Name</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Scheduling</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Processed</TableHead>
+                    <TableHead>Errors</TableHead>
+                    <TableHead>Host</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {nodesData.map((node) => (
+                    <TableRow key={node.id}>
+                      <TableCell className="font-medium">{node.name}</TableCell>
+                      <TableCell>{node.type}</TableCell>
+                      <TableCell>{node.scheduling}</TableCell>
+                      <TableCell>
+                        <Badge className={getStatusColor(node.status)}>
+                          {node.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{node.processed.toLocaleString()}</TableCell>
+                      <TableCell>{node.errors}</TableCell>
+                      <TableCell>{node.host}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          <Button size="sm" variant="outline" className="h-8 w-8 p-0">
+                            <Play className="h-3 w-3" />
+                          </Button>
+                          <Button size="sm" variant="outline" className="h-8 w-8 p-0">
+                            <Pause className="h-3 w-3" />
+                          </Button>
+                          <Button size="sm" variant="outline" className="h-8 w-8 p-0">
+                            <RotateCcw className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
           </CardContent>
         </Card>
 
-        {/* Performance Statistics */}
-        <PerformanceStats 
-          throughputLastHour={520}
-          eventsLastHour={flow.nodes?.length * 1000 || 0}
-          eventsLast24h={flow.nodes?.length * 24000 || 0}
-          eventsLast7d={flow.nodes?.length * 168000 || 0}
-          errorRate={0.02}
-          retryCount={5}
-        />
+        {/* Flow Monitoring Tabs */}
+        <Tabs defaultValue="flow-live-log" className="space-y-4">
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="flow-live-log" className="gap-2">
+              <FileText className="h-4 w-4" />
+              Flow Live Log
+            </TabsTrigger>
+            <TabsTrigger value="node-live-log" className="gap-2">
+              <Activity className="h-4 w-4" />
+              Node Live Log
+            </TabsTrigger>
+            <TabsTrigger value="statistics" className="gap-2">
+              <TrendingUp className="h-4 w-4" />
+              Statistics
+            </TabsTrigger>
+            <TabsTrigger value="alerts-logs" className="gap-2">
+              <Bell className="h-4 w-4" />
+              Alerts & Logs
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="gap-2">
+              <Settings className="h-4 w-4" />
+              Execution Settings
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Alerts & Logs Panel */}
-        <AlertsLogsPanel />
+          <TabsContent value="flow-live-log" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Flow Live Log</CardTitle>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline">
+                      <Download className="h-4 w-4 mr-2" />
+                      Export
+                    </Button>
+                    <Button size="sm" variant="outline">
+                      <Filter className="h-4 w-4 mr-2" />
+                      Filter
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                  <div className="text-xs text-muted-foreground p-2 border-l-2 border-info">
+                    [2024-01-20 14:25:12] Flow started successfully
+                  </div>
+                  <div className="text-xs text-muted-foreground p-2 border-l-2 border-success">
+                    [2024-01-20 14:25:15] Processing batch 001 (45 records)
+                  </div>
+                  <div className="text-xs text-muted-foreground p-2 border-l-2 border-success">
+                    [2024-01-20 14:25:16] Validated 45 records, 0 errors
+                  </div>
+                  <div className="text-xs text-muted-foreground p-2 border-l-2 border-warning">
+                    [2024-01-20 14:25:17] Connection timeout, retrying...
+                  </div>
+                  <div className="text-xs text-muted-foreground p-2 border-l-2 border-success">
+                    [2024-01-20 14:25:20] Retry successful, processed 42 records
+                  </div>
+                  <div className="text-xs text-muted-foreground p-2 border-l-2 border-success">
+                    [2024-01-20 14:25:22] Loaded 42 records to data warehouse
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="node-live-log" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Node Live Log</CardTitle>
+                  <div className="flex gap-2">
+                    <Select>
+                      <SelectTrigger className="w-[180px]">
+                        <SelectValue placeholder="Select node" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {nodesData.map((node) => (
+                          <SelectItem key={node.id} value={node.id}>
+                            {node.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button size="sm" variant="outline">
+                      <Download className="h-4 w-4 mr-2" />
+                      Export
+                    </Button>
+                    <Button size="sm" variant="outline">
+                      <Filter className="h-4 w-4 mr-2" />
+                      Filter
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                  <div className="text-xs text-muted-foreground p-2 border-l-2 border-success">
+                    [2024-01-20 14:25:15] Node initialized successfully
+                  </div>
+                  <div className="text-xs text-muted-foreground p-2 border-l-2 border-success">
+                    [2024-01-20 14:25:16] Processing batch 001 (45 records)
+                  </div>
+                  <div className="text-xs text-muted-foreground p-2 border-l-2 border-success">
+                    [2024-01-20 14:25:17] Batch processed successfully
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="statistics" className="space-y-4">
+            <PerformanceStats 
+              throughputLastHour={Math.floor(Math.random() * 50000) + 10000}
+              eventsLastHour={Math.floor(Math.random() * 100000) + 20000}
+              eventsLast24h={Math.floor(Math.random() * 1000000) + 500000}
+              eventsLast7d={Math.floor(Math.random() * 5000000) + 2000000}
+              errorRate={Math.random() * 5}
+              retryCount={Math.floor(Math.random() * 100)}
+            />
+          </TabsContent>
+
+          <TabsContent value="alerts-logs" className="space-y-4">
+            <AlertsLogsPanel />
+          </TabsContent>
+
+          <TabsContent value="settings" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Execution Settings</CardTitle>
+                <CardDescription>
+                  Configure flow execution parameters and behavior
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label>Max Concurrent Nodes</Label>
+                    <Input type="number" defaultValue="5" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Retry Attempts</Label>
+                    <Input type="number" defaultValue="3" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Timeout (seconds)</Label>
+                    <Input type="number" defaultValue="300" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Priority</Label>
+                    <Select defaultValue="normal">
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="low">Low</SelectItem>
+                        <SelectItem value="normal">Normal</SelectItem>
+                        <SelectItem value="high">High</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Auto Restart on Failure</Label>
+                    <div className="text-sm text-muted-foreground">
+                      Automatically restart the flow if it fails
+                    </div>
+                  </div>
+                  <Switch defaultChecked />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Enable Monitoring</Label>
+                    <div className="text-sm text-muted-foreground">
+                      Send performance metrics and alerts
+                    </div>
+                  </div>
+                  <Switch defaultChecked />
+                </div>
+
+                <div className="pt-4">
+                  <Button>Save Settings</Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
