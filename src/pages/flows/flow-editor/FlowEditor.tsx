@@ -298,6 +298,22 @@ export function FlowEditor() {
     }
   };
 
+  // Default edge options for flexible bezier curves
+  const defaultEdgeOptions = {
+    type: 'bezier',
+    animated: true,
+    style: {
+      stroke: 'hsl(var(--primary))',
+      strokeWidth: 3,
+    },
+    markerEnd: {
+      type: MarkerType.ArrowClosed,
+      color: 'hsl(var(--primary))',
+      width: 20,
+      height: 20,
+    },
+  };
+
   const nodeTypes = useMemo(() => ({
     simplified: SimplifiedNode,
   }), []);
@@ -378,6 +394,7 @@ export function FlowEditor() {
             onDrop={onDrop}
             onDragOver={onDragOver}
             nodeTypes={nodeTypes}
+            defaultEdgeOptions={defaultEdgeOptions}
             fitView
             className="bg-background"
           >
