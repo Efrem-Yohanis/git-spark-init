@@ -150,10 +150,11 @@ export function FlowEditor() {
     async (params: Connection) => {
       console.log('🔗 Connecting nodes:', params);
       
-      // Add edge with same styling as FlowPipeline
-      const newEdge = {
+      // Add edge with same styling as FlowPipeline - flexible bezier curves
+      const newEdge: Edge = {
+        id: `e${params.source}-${params.target}`,
         ...params,
-        type: 'bezier', // Use bezier curves for flexible connections
+        type: 'bezier', // Flexible curved connections like streams page
         animated: true,
         style: {
           stroke: 'hsl(var(--primary))',
