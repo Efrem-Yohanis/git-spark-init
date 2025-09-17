@@ -20,7 +20,11 @@ import {
   Database,
   Grid3X3,
   List,
-  Eye
+  Eye,
+  ChevronLeft,
+  ChevronRight,
+  RefreshCcw,
+  ExternalLink
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -32,7 +36,9 @@ import { useSubnodes, subnodeService } from "@/services/subnodeService";
 import { parameterService } from "@/services/parameterService";
 import { LoadingCard } from "@/components/ui/loading";
 import { useSection } from "@/contexts/SectionContext";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import axios from "axios";
+import { gitService, type GitInfo } from "@/services/gitService";
 
 export function DevToolPage() {
   const navigate = useNavigate();
@@ -45,8 +51,14 @@ export function DevToolPage() {
     setStatusCounts({ total: 0, deployed: 0, drafted: 0 }); // Hide status counts
   }, [setCurrentSection, setStatusCounts]);
   
-  // Display limits state
-  const [displayLimits, setDisplayLimits] = useState<{[key: string]: number}>({
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState<{[key: string]: number}>({
+    flows: 1,
+    nodes: 1,
+    subnodes: 1,
+    parameters: 1
+  });
+  const [itemsPerPage, setItemsPerPage] = useState<{[key: string]: number}>({
     flows: 10,
     nodes: 10,
     subnodes: 10,
@@ -72,439 +84,635 @@ export function DevToolPage() {
   const [parametersLoading, setParametersLoading] = useState(true);
 
   // Helper functions
-  const handleDisplayLimitChange = (category: string, limit: number) => {
-    setDisplayLimits(prev => ({ ...prev, [category]: limit }));
+  const getPaginatedItems = (items: any[], category: string) => {
+    const start = (currentPage[category] - 1) * itemsPerPage[category];
+    const end = start + itemsPerPage[category];
+    return items.slice(start, end);
   };
 
-  const getDisplayedItems = (items: any[], category: string) => {
-    return items.slice(0, displayLimits[category]);
+  const getTotalPages = (itemCount: number, category: string) => {
+    return Math.ceil(itemCount / itemsPerPage[category]);
   };
 
-  // Render controls component
-  const renderViewControls = (category: string, itemCount: number) => (
-    <div className="flex items-center gap-3">
-      <div className="flex items-center gap-2">
-        <Label htmlFor={`limit-${category}`} className="text-xs font-medium text-muted-foreground">
-          Display:
-        </Label>
-        <Select
-          value={displayLimits[category].toString()}
-          onValueChange={(value) => handleDisplayLimitChange(category, parseInt(value))}
-        >
-          <SelectTrigger className="w-16 h-8 text-xs">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="5">5</SelectItem>
-            <SelectItem value="10">10</SelectItem>
-            <SelectItem value="20">20</SelectItem>
-            <SelectItem value="50">50</SelectItem>
-            <SelectItem value={itemCount.toString()}>All</SelectItem>
-          </SelectContent>
-        </Select>
+  const handlePageChange = (category: string, page: number) => {
+    setCurrentPage(prev => ({ ...prev, [category]: page }));
+  };
+
+  const handleItemsPerPageChange = (category: string, newItemsPerPage: number) => {
+    setItemsPerPage(prev => ({ ...prev, [category]: newItemsPerPage }));
+    setCurrentPage(prev => ({ ...prev, [category]: 1 })); // Reset to first page
+  };
+
+  // Render pagination component
+  const renderPagination = (category: string, totalItems: number) => {
+    const totalPages = getTotalPages(totalItems, category);
+    const current = currentPage[category];
+    const itemsPerPageValue = itemsPerPage[category];
+    
+    if (totalItems === 0) return null;
+
+    // Calculate page range to show
+    const maxVisiblePages = 5;
+    let startPage = Math.max(1, current - Math.floor(maxVisiblePages / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+    
+    // Adjust start page if we're near the end
+    if (endPage - startPage + 1 < maxVisiblePages) {
+      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+
+    const pageNumbers = Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i);
+
+    return (
+      <div className="flex items-center justify-between px-2 py-4 border-t border-border bg-muted/20">
+        <div className="flex items-center gap-4">
+        </div>
+        
+        {totalPages > 1 && (
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious 
+                  onClick={() => current > 1 && handlePageChange(category, current - 1)}
+                  className={current <= 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                />
+              </PaginationItem>
+              
+              {/* First page */}
+              {startPage > 1 && (
+                <>
+                  <PaginationItem>
+                    <PaginationLink
+                      onClick={() => handlePageChange(category, 1)}
+                      className="cursor-pointer"
+                    >
+                      1
+                    </PaginationLink>
+                  </PaginationItem>
+                  {startPage > 2 && (
+                    <PaginationItem>
+                      <span className="px-3 py-2 text-muted-foreground">...</span>
+                    </PaginationItem>
+                  )}
+                </>
+              )}
+              
+              {/* Page numbers */}
+              {pageNumbers.map((page) => (
+                <PaginationItem key={page}>
+                  <PaginationLink
+                    onClick={() => handlePageChange(category, page)}
+                    isActive={current === page}
+                    className="cursor-pointer"
+                  >
+                    {page}
+                  </PaginationLink>
+                </PaginationItem>
+              ))}
+              
+              {/* Last page */}
+              {endPage < totalPages && (
+                <>
+                  {endPage < totalPages - 1 && (
+                    <PaginationItem>
+                      <span className="px-3 py-2 text-muted-foreground">...</span>
+                    </PaginationItem>
+                  )}
+                  <PaginationItem>
+                    <PaginationLink
+                      onClick={() => handlePageChange(category, totalPages)}
+                      className="cursor-pointer"
+                    >
+                      {totalPages}
+                    </PaginationLink>
+                  </PaginationItem>
+                </>
+              )}
+              
+              <PaginationItem>
+                <PaginationNext 
+                  onClick={() => current < totalPages && handlePageChange(category, current + 1)}
+                  className={current >= totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        )}
       </div>
-      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-        <Eye className="h-3.5 w-3.5" />
-        <span>{Math.min(displayLimits[category], itemCount)} of {itemCount}</span>
-      </div>
-    </div>
-  );
+    );
+  };
 
   // Professional table renders
-  const renderFlowsList = (flows: any[]) => (
-    <div className="overflow-hidden">
-      <Table>
-        <TableHeader>
-          <TableRow className="border-b border-border bg-muted/30">
-            <TableHead className="h-12 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Name
-            </TableHead>
-            <TableHead className="h-12 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Status
-            </TableHead>
-            <TableHead className="h-12 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Created
-            </TableHead>
-            <TableHead className="h-12 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider text-right">
-              Actions
-            </TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {flows.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
-                <div className="flex flex-col items-center gap-2">
-                  <Workflow className="h-8 w-8 text-muted-foreground/50" />
-                  <span className="text-sm">No flows found</span>
-                </div>
-              </TableCell>
+  const renderFlowsList = (flows: any[], totalCount: number) => (
+    <div className="space-y-4">
+      <div className="overflow-hidden border border-border rounded-lg bg-card">
+        <Table>
+          <TableHeader>
+            <TableRow className="border-b border-border bg-muted/30">
+              <TableHead className="h-12 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Name
+              </TableHead>
+              <TableHead className="h-12 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Running Status
+              </TableHead>
+              <TableHead className="h-12 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Deployment Status
+              </TableHead>
+              <TableHead className="h-12 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Type of Mediation
+              </TableHead>
+              <TableHead className="h-12 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Last Update Date
+              </TableHead>
+              <TableHead className="h-12 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Last Updated By
+              </TableHead>
+              <TableHead className="h-12 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider text-right">
+                Actions
+              </TableHead>
             </TableRow>
-          ) : (
-            flows.map((flow: any) => (
-              <TableRow key={flow.id} className="hover:bg-muted/30 transition-colors">
-                <TableCell className="px-6 py-4">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-                      <Workflow className="h-4 w-4 text-primary" />
-                    </div>
-                    <div>
-                      <div className="font-medium text-foreground">{flow.name}</div>
-                      <div className="text-xs text-muted-foreground">ID: {flow.id}</div>
-                    </div>
+          </TableHeader>
+          <TableBody>
+            {flows.length === 0 ? (
+                <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                  <div className="flex flex-col items-center gap-2">
+                    <span className="text-sm">No flows found</span>
                   </div>
                 </TableCell>
-                <TableCell className="px-6 py-4">
-                  <Badge 
-                    variant={flow.is_deployed ? "default" : "secondary"}
-                    className="text-xs font-medium"
+            ) : (
+              flows.map((flow: any) => {
+                const runningStatus = flow.running_status || 'Stopped';
+                const isDeployed = flow.is_deployed;
+                
+                return (
+                  <TableRow 
+                    key={flow.id} 
+                    className={`hover:bg-muted/30 transition-colors ${
+                      isDeployed ? 'bg-success/5' : 'bg-warning/5'
+                    }`}
                   >
-                    {flow.is_deployed ? "Deployed" : "Draft"}
-                  </Badge>
-                </TableCell>
-                <TableCell className="px-6 py-4 text-sm text-muted-foreground">
-                  {new Date(flow.created_at).toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'short',
-                    day: 'numeric'
-                  })}
-                </TableCell>
-                <TableCell className="px-6 py-4">
-                  <div className="flex items-center justify-end gap-1">
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="h-8 w-8 p-0" 
-                      onClick={() => navigate(`/flows/${flow.id}`)}
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="h-8 w-8 p-0" 
-                      onClick={() => handleExportFlow(flow)}
-                    >
-                      <Download className="h-4 w-4" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="h-8 w-8 p-0" 
-                      onClick={() => handleCloneFlow(flow)}
-                    >
-                      <Copy className="h-4 w-4" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="h-8 w-8 p-0 text-destructive hover:text-destructive" 
-                      onClick={() => handleDeleteFlow(flow.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
+                    <TableCell className="px-6 py-4">
+                      <div>
+                        <div className="font-medium text-foreground">{flow.name}</div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="px-6 py-4">
+                      <Badge 
+                        variant="outline"
+                        className={`text-xs font-medium border-0 ${
+                          runningStatus === 'Running' ? 'bg-success text-success-foreground' :
+                          runningStatus === 'Partial' ? 'bg-warning text-warning-foreground' :
+                          'bg-destructive text-destructive-foreground'
+                        }`}
+                      >
+                        {runningStatus}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="px-6 py-4">
+                      <Badge 
+                        variant="outline"
+                        className={`text-xs font-medium border-0 ${
+                          isDeployed ? 'bg-success text-success-foreground' : 'bg-warning text-warning-foreground'
+                        }`}
+                      >
+                        {isDeployed ? "Deployed" : "Draft"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="px-6 py-4 text-sm text-muted-foreground">
+                      {flow.mediation_type || 'N/A'}
+                    </TableCell>
+                    <TableCell className="px-6 py-4 text-sm text-muted-foreground">
+                      {flow.updated_at ? new Date(flow.updated_at).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                      }) : 'N/A'}
+                    </TableCell>
+                    <TableCell className="px-6 py-4 text-sm text-muted-foreground">
+                      {flow.updated_by || 'System'}
+                    </TableCell>
+                    <TableCell className="px-6 py-4">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-8 px-3" 
+                          onClick={() => navigate(`/flows/${flow.id}`)}
+                        >
+                          View
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-8 px-3" 
+                          onClick={() => handleExportFlow(flow)}
+                        >
+                          Export
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-8 px-3" 
+                          onClick={() => handleCloneFlow(flow)}
+                        >
+                          Clone
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-8 px-3 text-destructive hover:text-destructive" 
+                          onClick={() => handleDeleteFlow(flow.id)}
+                        >
+                          Delete
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            )}
+          </TableBody>
+        </Table>
+      </div>
+      {renderPagination('flows', totalCount)}
     </div>
   );
 
-  const renderNodesList = (nodes: any[]) => (
-    <div className="overflow-hidden">
-      <Table>
-        <TableHeader>
-          <TableRow className="border-b border-border bg-muted/30">
-            <TableHead className="h-12 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Name
-            </TableHead>
-            <TableHead className="h-12 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Status
-            </TableHead>
-            <TableHead className="h-12 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Version
-            </TableHead>
-            <TableHead className="h-12 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider text-right">
-              Actions
-            </TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {nodes.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
-                <div className="flex flex-col items-center gap-2">
-                  <Network className="h-8 w-8 text-muted-foreground/50" />
-                  <span className="text-sm">No nodes found</span>
-                </div>
-              </TableCell>
+  const renderNodesList = (nodes: any[], totalCount: number) => (
+    <div className="space-y-4">
+      <div className="overflow-hidden border border-border rounded-lg bg-card">
+        <Table>
+          <TableHeader>
+            <TableRow className="border-b border-border bg-muted/30">
+              <TableHead className="h-12 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Name
+              </TableHead>
+              <TableHead className="h-12 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Status
+              </TableHead>
+              <TableHead className="h-12 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Mediation Type
+              </TableHead>
+              <TableHead className="h-12 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Node Type
+              </TableHead>
+              <TableHead className="h-12 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Version
+              </TableHead>
+              <TableHead className="h-12 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Last Update Date
+              </TableHead>
+              <TableHead className="h-12 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Last Updated By
+              </TableHead>
+              <TableHead className="h-12 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider text-right">
+                Actions
+              </TableHead>
             </TableRow>
-          ) : (
-            nodes.map((node: any) => (
-              <TableRow key={node.id} className="hover:bg-muted/30 transition-colors">
-                <TableCell className="px-6 py-4">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10">
-                      <Network className="h-4 w-4 text-blue-600" />
-                    </div>
-                    <div>
-                      <div className="font-medium text-foreground">{node.name}</div>
-                      <div className="text-xs text-muted-foreground">ID: {node.id}</div>
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell className="px-6 py-4">
-                  <Badge 
-                    variant={node.is_deployed ? "default" : "secondary"}
-                    className="text-xs font-medium"
-                  >
-                    {node.is_deployed ? "Deployed" : "Draft"}
-                  </Badge>
-                </TableCell>
-                <TableCell className="px-6 py-4 text-sm text-muted-foreground">
-                  {node.version || 'N/A'}
-                </TableCell>
-                <TableCell className="px-6 py-4">
-                  <div className="flex items-center justify-end gap-1">
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="h-8 w-8 p-0" 
-                      onClick={() => navigate(`/nodes/${node.id}`)}
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="h-8 w-8 p-0" 
-                      onClick={() => handleExportNode(node)}
-                    >
-                      <Download className="h-4 w-4" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="h-8 w-8 p-0"
-                    >
-                      <Copy className="h-4 w-4" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="h-8 w-8 p-0 text-destructive hover:text-destructive" 
-                      onClick={() => handleDeleteNode(node.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+          </TableHeader>
+          <TableBody>
+            {nodes.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
+                  <div className="flex flex-col items-center gap-2">
+                    <span className="text-sm">No nodes found</span>
                   </div>
                 </TableCell>
               </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
+            ) : (
+              nodes.map((node: any) => {
+                const isDeployed = node.is_deployed;
+                
+                return (
+                  <TableRow 
+                    key={node.id} 
+                    className={`hover:bg-muted/30 transition-colors ${
+                      isDeployed ? 'bg-success/5' : 'bg-warning/5'
+                    }`}
+                  >
+                    <TableCell className="px-6 py-4">
+                      <div>
+                        <div className="font-medium text-foreground">{node.name}</div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="px-6 py-4">
+                      <Badge 
+                        variant="outline"
+                        className={`text-xs font-medium border-0 ${
+                          isDeployed ? 'bg-success text-success-foreground' : 'bg-warning text-warning-foreground'
+                        }`}
+                      >
+                        {isDeployed ? "Deployed" : "Draft"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="px-6 py-4 text-sm text-muted-foreground">
+                      {node.mediation_type || 'N/A'}
+                    </TableCell>
+                    <TableCell className="px-6 py-4 text-sm text-muted-foreground">
+                      {node.node_type || 'N/A'}
+                    </TableCell>
+                    <TableCell className="px-6 py-4 text-sm text-muted-foreground">
+                      {node.version || 'N/A'}
+                    </TableCell>
+                    <TableCell className="px-6 py-4 text-sm text-muted-foreground">
+                      {node.updated_at ? new Date(node.updated_at).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                      }) : 'N/A'}
+                    </TableCell>
+                    <TableCell className="px-6 py-4 text-sm text-muted-foreground">
+                      {node.updated_by || 'System'}
+                    </TableCell>
+                    <TableCell className="px-6 py-4">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-8 px-3" 
+                          onClick={() => navigate(`/nodes/${node.id}`)}
+                        >
+                          View
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-8 px-3" 
+                          onClick={() => handleExportNode(node)}
+                        >
+                          Export
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-8 px-3"
+                        >
+                          Clone
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-8 px-3 text-destructive hover:text-destructive" 
+                          onClick={() => handleDeleteNode(node.id)}
+                        >
+                          Delete
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            )}
+          </TableBody>
+        </Table>
+      </div>
+      {renderPagination('nodes', totalCount)}
     </div>
   );
 
-  const renderSubnodesList = (subnodes: any[]) => (
-    <div className="overflow-hidden">
-      <Table>
-        <TableHeader>
-          <TableRow className="border-b border-border bg-muted/30">
-            <TableHead className="h-12 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Name
-            </TableHead>
-            <TableHead className="h-12 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Status
-            </TableHead>
-            <TableHead className="h-12 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Version
-            </TableHead>
-            <TableHead className="h-12 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider text-right">
-              Actions
-            </TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {subnodes.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
-                <div className="flex flex-col items-center gap-2">
-                  <GitFork className="h-8 w-8 text-muted-foreground/50" />
-                  <span className="text-sm">No subnodes found</span>
-                </div>
-              </TableCell>
+  const renderSubnodesList = (subnodes: any[], totalCount: number) => (
+    <div className="space-y-4">
+      <div className="overflow-hidden border border-border rounded-lg bg-card">
+        <Table>
+          <TableHeader>
+            <TableRow className="border-b border-border bg-muted/30">
+              <TableHead className="h-12 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Name
+              </TableHead>
+              <TableHead className="h-12 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Status
+              </TableHead>
+              <TableHead className="h-12 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Version
+              </TableHead>
+              <TableHead className="h-12 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Last Update Date
+              </TableHead>
+              <TableHead className="h-12 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Last Updated By
+              </TableHead>
+              <TableHead className="h-12 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider text-right">
+                Actions
+              </TableHead>
             </TableRow>
-          ) : (
-            subnodes.map((subnode: any) => (
-              <TableRow key={subnode.id} className="hover:bg-muted/30 transition-colors">
-                <TableCell className="px-6 py-4">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-500/10">
-                      <GitFork className="h-4 w-4 text-orange-600" />
-                    </div>
-                    <div>
-                      <div className="font-medium text-foreground">{subnode.name}</div>
-                      <div className="text-xs text-muted-foreground">ID: {subnode.id}</div>
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell className="px-6 py-4">
-                  <Badge 
-                    variant={subnode.active_version ? "default" : "secondary"}
-                    className="text-xs font-medium"
-                  >
-                    {subnode.active_version ? "Active" : "Inactive"}
-                  </Badge>
-                </TableCell>
-                <TableCell className="px-6 py-4 text-sm text-muted-foreground">
-                  {subnode.active_version || 'N/A'}
-                </TableCell>
-                <TableCell className="px-6 py-4">
-                  <div className="flex items-center justify-end gap-1">
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="h-8 w-8 p-0" 
-                      onClick={() => navigate(`/subnodes/${subnode.id}`)}
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="h-8 w-8 p-0" 
-                      onClick={() => handleExportSubnode(subnode)}
-                    >
-                      <Download className="h-4 w-4" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="h-8 w-8 p-0"
-                    >
-                      <Copy className="h-4 w-4" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="h-8 w-8 p-0 text-destructive hover:text-destructive" 
-                      onClick={() => handleDeleteSubnode(subnode.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+          </TableHeader>
+          <TableBody>
+            {subnodes.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                  <div className="flex flex-col items-center gap-2">
+                    <span className="text-sm">No subnodes found</span>
                   </div>
                 </TableCell>
               </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
+            ) : (
+              subnodes.map((subnode: any) => {
+                const isActive = subnode.active_version;
+                const isDraft = subnode.status === 'Draft';
+                
+                return (
+                  <TableRow 
+                    key={subnode.id} 
+                    className={`hover:bg-muted/30 transition-colors ${
+                      isActive && !isDraft ? 'bg-success/5' : 'bg-warning/5'
+                    }`}
+                  >
+                    <TableCell className="px-6 py-4">
+                      <div>
+                        <div className="font-medium text-foreground">{subnode.name}</div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="px-6 py-4">
+                      <Badge 
+                        variant="outline"
+                        className={`text-xs font-medium border-0 ${
+                          isActive && !isDraft ? 'bg-success text-success-foreground' : 'bg-warning text-warning-foreground'
+                        }`}
+                      >
+                        {isActive && !isDraft ? "Active" : "Draft"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="px-6 py-4 text-sm text-muted-foreground">
+                      {subnode.active_version || 'N/A'}
+                    </TableCell>
+                    <TableCell className="px-6 py-4 text-sm text-muted-foreground">
+                      {subnode.updated_at ? new Date(subnode.updated_at).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                      }) : 'N/A'}
+                    </TableCell>
+                    <TableCell className="px-6 py-4 text-sm text-muted-foreground">
+                      {subnode.updated_by || 'System'}
+                    </TableCell>
+                    <TableCell className="px-6 py-4">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-8 px-3" 
+                          onClick={() => navigate(`/subnodes/${subnode.id}`)}
+                        >
+                          View
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-8 px-3" 
+                          onClick={() => handleExportSubnode(subnode)}
+                        >
+                          Export
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-8 px-3"
+                        >
+                          Clone
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-8 px-3 text-destructive hover:text-destructive" 
+                          onClick={() => handleDeleteSubnode(subnode.id)}
+                        >
+                          Delete
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            )}
+          </TableBody>
+        </Table>
+      </div>
+      {renderPagination('subnodes', totalCount)}
     </div>
   );
 
-  const renderParametersList = (parameters: any[]) => (
-    <div className="overflow-hidden">
-      <Table>
-        <TableHeader>
-          <TableRow className="border-b border-border bg-muted/30">
-            <TableHead className="h-12 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Key
-            </TableHead>
-            <TableHead className="h-12 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Value
-            </TableHead>
-            <TableHead className="h-12 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Status
-            </TableHead>
-            <TableHead className="h-12 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider text-right">
-              Actions
-            </TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {parameters.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
-                <div className="flex flex-col items-center gap-2">
-                  <Settings className="h-8 w-8 text-muted-foreground/50" />
-                  <span className="text-sm">No parameters found</span>
-                </div>
-              </TableCell>
+  const renderParametersList = (parameters: any[], totalCount: number) => (
+    <div className="space-y-4">
+      <div className="overflow-hidden border border-border rounded-lg bg-card">
+        <Table>
+          <TableHeader>
+            <TableRow className="border-b border-border bg-muted/30">
+              <TableHead className="h-12 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Key
+              </TableHead>
+              <TableHead className="h-12 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Default Value
+              </TableHead>
+              <TableHead className="h-12 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Status
+              </TableHead>
+              <TableHead className="h-12 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Last Update Date
+              </TableHead>
+              <TableHead className="h-12 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Last Updated By
+              </TableHead>
+              <TableHead className="h-12 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider text-right">
+                Actions
+              </TableHead>
             </TableRow>
-          ) : (
-            parameters.map((param: any) => (
-              <TableRow key={param.id} className="hover:bg-muted/30 transition-colors">
-                <TableCell className="px-6 py-4">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-green-500/10">
-                      <Settings className="h-4 w-4 text-green-600" />
-                    </div>
-                    <div>
-                      <div className="font-medium text-foreground">{param.key}</div>
-                      <div className="text-xs text-muted-foreground">ID: {param.id}</div>
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell className="px-6 py-4">
-                  <div className="max-w-xs">
-                    <div className="truncate text-sm text-foreground font-mono bg-muted/30 px-2 py-1 rounded text-xs">
-                      {param.value}
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell className="px-6 py-4">
-                  <Badge 
-                    variant={param.is_active ? "default" : "secondary"}
-                    className="text-xs font-medium"
-                  >
-                    {param.is_active ? "Active" : "Inactive"}
-                  </Badge>
-                </TableCell>
-                <TableCell className="px-6 py-4">
-                  <div className="flex items-center justify-end gap-1">
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="h-8 w-8 p-0" 
-                      onClick={() => navigate(`/parameters/${param.id}`)}
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="h-8 w-8 p-0" 
-                      onClick={() => handleExportParameter(param.id)}
-                    >
-                      <Download className="h-4 w-4" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="h-8 w-8 p-0"
-                    >
-                      <Copy className="h-4 w-4" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="h-8 w-8 p-0 text-destructive hover:text-destructive" 
-                      onClick={() => handleDeleteParameter(param.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+          </TableHeader>
+          <TableBody>
+            {parameters.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                  <div className="flex flex-col items-center gap-2">
+                    <span className="text-sm">No parameters found</span>
                   </div>
                 </TableCell>
               </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
+            ) : (
+              parameters.map((param: any) => {
+                const isActive = param.is_active;
+                const isDraft = param.status === 'Draft';
+                
+                return (
+                  <TableRow 
+                    key={param.id} 
+                    className={`hover:bg-muted/30 transition-colors ${
+                      isActive && !isDraft ? 'bg-success/5' : 'bg-warning/5'
+                    }`}
+                  >
+                    <TableCell className="px-6 py-4">
+                      <div>
+                        <div className="font-medium text-foreground">{param.key}</div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="px-6 py-4">
+                      <div className="max-w-xs">
+                        <div className="truncate text-sm text-foreground font-mono bg-muted/30 px-2 py-1 rounded text-xs">
+                          {param.value}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="px-6 py-4">
+                      <Badge 
+                        variant="outline"
+                        className={`text-xs font-medium border-0 ${
+                          isActive && !isDraft ? 'bg-success text-success-foreground' : 'bg-warning text-warning-foreground'
+                        }`}
+                      >
+                        {isActive && !isDraft ? "Active" : "Draft"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="px-6 py-4 text-sm text-muted-foreground">
+                      {param.updated_at ? new Date(param.updated_at).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                      }) : 'N/A'}
+                    </TableCell>
+                    <TableCell className="px-6 py-4 text-sm text-muted-foreground">
+                      {param.updated_by || 'System'}
+                    </TableCell>
+                    <TableCell className="px-6 py-4">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-8 px-3" 
+                          onClick={() => navigate(`/parameters/${param.id}`)}
+                        >
+                          View
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-8 px-3" 
+                          onClick={() => handleExportParameter(param.id)}
+                        >
+                          Export
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-8 px-3"
+                        >
+                          Clone
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-8 px-3 text-destructive hover:text-destructive" 
+                          onClick={() => handleDeleteParameter(param.id)}
+                        >
+                          Delete
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            )}
+          </TableBody>
+        </Table>
+      </div>
+      {renderPagination('parameters', totalCount)}
     </div>
   );
 
@@ -673,9 +881,45 @@ export function DevToolPage() {
     }
   };
 
+  // Git info state and handlers
+  const [gitInfo, setGitInfo] = useState<GitInfo | null>(null);
+  const [gitLoading, setGitLoading] = useState(false);
+
+  const fetchLatestGit = async () => {
+    try {
+      setGitLoading(true);
+      const info = await gitService.getLatestCommit();
+      setGitInfo(info);
+    } catch (error) {
+      toast({
+        title: "Git fetch failed",
+        description: "Could not retrieve latest commit.",
+        variant: "destructive",
+      });
+    } finally {
+      setGitLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void fetchLatestGit();
+  }, []);
+
+  // Auto-refresh git info every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!gitLoading) {
+        void fetchLatestGit();
+      }
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [gitLoading]);
+
   return (
     <div className="min-h-screen bg-background">
       <div className="w-full p-6 space-y-8">
+
         {/* Professional Tabs */}
         <div className="bg-card border border-border rounded-lg shadow-sm">
           <Tabs defaultValue="flows" className="w-full">
@@ -685,28 +929,24 @@ export function DevToolPage() {
                   value="flows" 
                   className="flex items-center gap-2 h-12 px-6 data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
                 >
-                  <Workflow className="h-4 w-4" />
                   <span className="font-medium">Flows</span>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="nodes" 
                   className="flex items-center gap-2 h-12 px-6 data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
                 >
-                  <Network className="h-4 w-4" />
                   <span className="font-medium">Nodes</span>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="subnodes" 
                   className="flex items-center gap-2 h-12 px-6 data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
                 >
-                  <GitFork className="h-4 w-4" />
                   <span className="font-medium">Subnodes</span>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="parameters" 
                   className="flex items-center gap-2 h-12 px-6 data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
                 >
-                  <Settings className="h-4 w-4" />
                   <span className="font-medium">Parameters</span>
                 </TabsTrigger>
               </TabsList>
@@ -742,15 +982,7 @@ export function DevToolPage() {
                     </div>
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                      <div className="flex items-center gap-4">
-                        {renderViewControls("flows", flows.length)}
-                      </div>
-                    
-                    <div className="border border-border rounded-lg bg-card">
-                      {renderFlowsList(getDisplayedItems(flows, 'flows'))}
-                    </div>
-                  </div>
+                  renderFlowsList(getPaginatedItems(flows, 'flows'), flows.length)
                 )}
               </div>
             </TabsContent>
@@ -768,7 +1000,7 @@ export function DevToolPage() {
                       <Upload className="h-4 w-4 mr-2" />
                       Import
                     </Button>
-                    <Button onClick={() => navigate("/nodes/create")} size="sm" className="h-9">
+                    <Button onClick={() => navigate("/nodes/new")} size="sm" className="h-9">
                       <Plus className="h-4 w-4 mr-2" />
                       New Node
                     </Button>
@@ -785,15 +1017,7 @@ export function DevToolPage() {
                     </div>
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                      <div className="flex items-center gap-4">
-                        {renderViewControls("nodes", nodes.length)}
-                      </div>
-                    
-                    <div className="border border-border rounded-lg bg-card">
-                      {renderNodesList(getDisplayedItems(nodes, 'nodes'))}
-                    </div>
-                  </div>
+                  renderNodesList(getPaginatedItems(nodes, 'nodes'), nodes.length)
                 )}
               </div>
             </TabsContent>
@@ -828,15 +1052,7 @@ export function DevToolPage() {
                     </div>
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                      <div className="flex items-center gap-4">
-                        {renderViewControls("subnodes", (subnodesData?.results || []).length)}
-                      </div>
-                    
-                    <div className="border border-border rounded-lg bg-card">
-                      {renderSubnodesList(getDisplayedItems((subnodesData?.results || []), 'subnodes'))}
-                    </div>
-                  </div>
+                  renderSubnodesList(getPaginatedItems((subnodesData?.results || []), 'subnodes'), (subnodesData?.results || []).length)
                 )}
               </div>
             </TabsContent>
@@ -854,7 +1070,7 @@ export function DevToolPage() {
                       <Upload className="h-4 w-4 mr-2" />
                       Import
                     </Button>
-                    <Button onClick={() => navigate("/parameters/create")} size="sm" className="h-9">
+                    <Button onClick={() => navigate("/parameters/new")} size="sm" className="h-9">
                       <Plus className="h-4 w-4 mr-2" />
                       New Parameter
                     </Button>
@@ -871,15 +1087,7 @@ export function DevToolPage() {
                     </div>
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                      <div className="flex items-center gap-4">
-                        {renderViewControls("parameters", parameters.length)}
-                      </div>
-                    
-                    <div className="border border-border rounded-lg bg-card">
-                      {renderParametersList(getDisplayedItems(parameters, 'parameters'))}
-                    </div>
-                  </div>
+                  renderParametersList(getPaginatedItems(parameters, 'parameters'), parameters.length)
                 )}
               </div>
             </TabsContent>

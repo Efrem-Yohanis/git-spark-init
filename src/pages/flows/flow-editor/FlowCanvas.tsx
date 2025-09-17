@@ -126,10 +126,10 @@ export function FlowCanvas({ selectedNodeType, onNodeSelect, selectedNode, flowI
     async (params: Connection) => {
       console.log('🔗 Connecting nodes:', params);
       
-      // Create edge with same styling as FlowPipeline
+      // Create edge with smooth bezier curves like FlowPipeline
       const newEdge = {
         ...params,
-        type: 'bezier', // Use bezier curves for flexible connections
+        type: 'smoothstep', // Use smoothstep for smoother connections
         animated: true,
         style: {
           stroke: 'hsl(var(--primary))',

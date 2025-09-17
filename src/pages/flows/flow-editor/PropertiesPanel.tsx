@@ -195,7 +195,7 @@ export function PropertiesPanel({ selectedNode, onUpdateNode, onDeleteNode, flow
                   <SelectTrigger>
                     <SelectValue placeholder="Choose a subnode for this flow" />
                   </SelectTrigger>
-                  <SelectContent className="bg-popover border border-border shadow-lg">
+                  <SelectContent className="z-[9999] bg-popover border border-border shadow-lg">
                     {availableSubnodes.map((subnode) => (
                       <SelectItem key={subnode.id} value={subnode.id}>
                         <div className="flex items-center justify-between w-full">
