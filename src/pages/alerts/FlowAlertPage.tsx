@@ -88,43 +88,43 @@ export function FlowAlertPage() {
   const totalAlerts = alerts.length;
 
   return (
-    <main className="w-full p-6 space-y-8">
-      {/* Enhanced Header */}
+    <main className="w-full p-6 space-y-8 bg-background">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <div className="p-3 bg-primary/10 rounded-lg">
+          <div className="p-3 bg-muted">
             <Shield className="h-8 w-8 text-primary" />
           </div>
           <div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+            <h1 className="text-3xl font-bold text-foreground">
               Flow Alerts & Monitoring
             </h1>
             <p className="text-muted-foreground text-lg">Enterprise-grade flow execution monitoring and alert management system</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline" size="sm" className="shadow-sm">
+          <Button variant="outline" size="sm">
             <RefreshCw className="h-4 w-4 mr-2" />
             Auto Refresh
           </Button>
-          <Button variant="outline" size="sm" className="shadow-sm">
+          <Button variant="outline" size="sm">
             <Download className="h-4 w-4 mr-2" />
             Export Report
           </Button>
-          <Button size="sm" className="shadow-lg bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary/80">
+          <Button size="sm">
             <Bell className="h-4 w-4 mr-2" />
             Configure Alerts
           </Button>
         </div>
       </div>
 
-      {/* Enhanced Summary Cards */}
+      {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="border-0 shadow-lg bg-gradient-to-br from-destructive/5 to-destructive/10 hover:shadow-xl transition-all duration-300">
+        <Card className="border border-border bg-card">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-destructive/20 rounded-lg">
+                <div className="p-2 bg-muted">
                   <XCircle className="h-6 w-6 text-destructive" />
                 </div>
                 <div>
@@ -140,11 +140,11 @@ export function FlowAlertPage() {
           </CardContent>
         </Card>
         
-        <Card className="border-0 shadow-lg bg-gradient-to-br from-primary/5 to-primary/10 hover:shadow-xl transition-all duration-300">
+        <Card className="border border-border bg-card">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-primary/20 rounded-lg">
+                <div className="p-2 bg-muted">
                   <AlertTriangle className="h-6 w-6 text-primary" />
                 </div>
                 <div>
@@ -152,19 +152,15 @@ export function FlowAlertPage() {
                   <p className="text-3xl font-bold text-foreground">{totalAlerts}</p>
                 </div>
               </div>
-              <div className="text-right">
-                <p className="text-xs text-muted-foreground">All time</p>
-                <p className="text-sm font-semibold text-primary">Active</p>
-              </div>
             </div>
           </CardContent>
         </Card>
         
-        <Card className="border-0 shadow-lg bg-gradient-to-br from-secondary/5 to-secondary/10 hover:shadow-xl transition-all duration-300">
+        <Card className="border border-border bg-card">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-secondary/20 rounded-lg">
+                <div className="p-2 bg-muted">
                   <Clock className="h-6 w-6 text-secondary-foreground" />
                 </div>
                 <div>
@@ -172,19 +168,15 @@ export function FlowAlertPage() {
                   <p className="text-3xl font-bold text-foreground">{alerts.filter(a => a.status === 'acknowledged').length}</p>
                 </div>
               </div>
-              <div className="text-right">
-                <p className="text-xs text-muted-foreground">Processing</p>
-                <p className="text-sm font-semibold text-secondary-foreground">In Progress</p>
-              </div>
             </div>
           </CardContent>
         </Card>
         
-        <Card className="border-0 shadow-lg bg-gradient-to-br from-success/5 to-success/10 hover:shadow-xl transition-all duration-300">
+        <Card className="border border-border bg-card">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-success/20 rounded-lg">
+                <div className="p-2 bg-muted">
                   <CheckCircle className="h-6 w-6 text-success" />
                 </div>
                 <div>
@@ -192,22 +184,18 @@ export function FlowAlertPage() {
                   <p className="text-3xl font-bold text-success">{alerts.filter(a => a.status === 'resolved').length}</p>
                 </div>
               </div>
-              <div className="text-right">
-                <p className="text-xs text-muted-foreground">Success rate</p>
-                <p className="text-sm font-semibold text-success">98.2%</p>
-              </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Enhanced Filters and Controls */}
-      <Card className="border-0 shadow-lg bg-gradient-to-r from-background to-muted/20">
+      {/* Filters and Controls */}
+      <Card className="border border-border bg-card">
         <CardContent className="p-6">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-4">
-              <h3 className="text-lg font-semibold">Alert Management</h3>
-              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+              <h3 className="text-lg font-semibold text-foreground">Alert Management</h3>
+              <Badge variant="outline" className="text-primary border-primary/20">
                 Live Monitoring
               </Badge>
             </div>

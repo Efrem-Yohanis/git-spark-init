@@ -91,20 +91,19 @@ export function NCCMediationPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
+    <div className="min-h-screen bg-background">
       <div className="space-y-6 p-6">
         {/* Dashboard Header */}
-        <div className="relative">
-          <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-primary-glow/5 rounded-2xl" />
-          <div className="relative bg-card/50 backdrop-blur-sm border border-border/50 rounded-2xl p-6 shadow-card">
+        <Card className="border border-border bg-card">
+          <CardContent className="p-6">
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
               <div className="space-y-2">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-primary/10 rounded-lg">
+                  <div className="p-2 bg-muted">
                     <Phone className="h-6 w-6 text-primary" />
                   </div>
                   <div>
-                    <h1 className="text-2xl font-bold bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent">
+                    <h1 className="text-2xl font-bold text-foreground">
                       NCC Mediation
                     </h1>
                     <p className="text-sm text-muted-foreground">
@@ -135,15 +134,15 @@ export function NCCMediationPage() {
                 </div>
               </div>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* Summary Cards */}
         <div className="grid gap-4 md:grid-cols-6">
-          <Card className="bg-success/5 border-success/20 shadow-subtle">
+          <Card className="border border-border bg-card">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-success/10 rounded-lg">
+                <div className="p-2 bg-muted">
                   <Play className="h-5 w-5 text-success" />
                 </div>
                 <div>
@@ -156,10 +155,10 @@ export function NCCMediationPage() {
             </CardContent>
           </Card>
           
-          <Card className="bg-destructive/5 border-destructive/20 shadow-subtle">
+          <Card className="border border-border bg-card">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-destructive/10 rounded-lg">
+                <div className="p-2 bg-muted">
                   <Square className="h-5 w-5 text-destructive" />
                 </div>
                 <div>
@@ -172,10 +171,10 @@ export function NCCMediationPage() {
             </CardContent>
           </Card>
           
-          <Card className="bg-primary/5 border-primary/20 shadow-subtle">
+          <Card className="border border-border bg-card">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-primary/10 rounded-lg">
+                <div className="p-2 bg-muted">
                   <Monitor className="h-5 w-5 text-primary" />
                 </div>
                 <div>
@@ -188,10 +187,10 @@ export function NCCMediationPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-destructive/5 border-destructive/20 shadow-subtle">
+          <Card className="border border-border bg-card">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-destructive/10 rounded-lg">
+                <div className="p-2 bg-muted">
                   <AlertTriangle className="h-5 w-5 text-destructive" />
                 </div>
                 <div>
@@ -204,10 +203,10 @@ export function NCCMediationPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-warning/5 border-warning/20 shadow-subtle">
+          <Card className="border border-border bg-card">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-warning/10 rounded-lg">
+                <div className="p-2 bg-muted">
                   <AlertCircle className="h-5 w-5 text-warning" />
                 </div>
                 <div>
@@ -220,10 +219,10 @@ export function NCCMediationPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-info/5 border-info/20 shadow-subtle">
+          <Card className="border border-border bg-card">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-info/10 rounded-lg">
+                <div className="p-2 bg-muted">
                   <Info className="h-5 w-5 text-info" />
                 </div>
                 <div>
@@ -238,10 +237,10 @@ export function NCCMediationPage() {
         </div>
 
         {/* Streams Table */}
-        <Card className="bg-card/50 backdrop-blur-sm border-border/50 shadow-subtle">
+        <Card className="border border-border bg-card">
           <CardHeader>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <CardTitle className="text-lg font-semibold">Streams</CardTitle>
+              <CardTitle className="text-lg font-semibold text-foreground">Streams</CardTitle>
               <div className="flex flex-col sm:flex-row gap-2">
                 <div className="flex items-center gap-2">
                   <label htmlFor="status-filter" className="text-sm font-medium text-muted-foreground">
@@ -249,7 +248,7 @@ export function NCCMediationPage() {
                   </label>
                   <select 
                     id="status-filter"
-                    className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                    className="h-9 border border-input bg-background px-3 py-1 text-sm text-foreground"
                     defaultValue="all"
                   >
                     <option value="all">All Status</option>
@@ -262,17 +261,17 @@ export function NCCMediationPage() {
                   <input
                     type="text"
                     placeholder="Search flows..."
-                    className="h-9 w-full sm:w-64 rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background placeholder:text-muted-foreground focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                    className="h-9 w-full sm:w-64 border border-input bg-background px-3 py-1 text-sm text-foreground placeholder:text-muted-foreground"
                   />
                 </div>
               </div>
             </div>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="overflow-hidden rounded-lg border border-border">
+            <div className="overflow-hidden border border-border">
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
-                  <thead className="bg-muted/50 border-b border-border sticky top-0 z-10">
+                  <thead className="bg-muted/30 border-b border-border">
                     <tr>
                       <th className="text-left font-medium text-muted-foreground px-4 py-3">
                         Stream Name
@@ -318,7 +317,7 @@ export function NCCMediationPage() {
                         <td className="px-4 py-3">
                           {getStatusBadge(stream.status)}
                         </td>
-                        <td className="px-4 py-3 font-medium">
+                        <td className="px-4 py-3 font-medium text-foreground">
                           {stream.throughput}
                         </td>
                       </tr>
