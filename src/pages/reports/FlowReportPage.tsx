@@ -4,9 +4,35 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { GitCommit } from "lucide-react";
+import { useEffect, useState } from "react";
+import { gitService } from "@/services/gitService";
 
 
 export function FlowReportPage() {
+  const [gitInfo, setGitInfo] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchGitInfo = async () => {
+      try {
+        const info = await gitService.getLatestCommit();
+        setGitInfo(info);
+        console.log('Latest Git Commit Info:', {
+          hash: info.lastCommit.hash,
+          message: info.lastCommit.message,
+          author: info.lastCommit.author,
+          date: new Date(info.lastCommit.date).toLocaleString(),
+          branch: info.lastCommit.branch,
+          repository: info.repository.name
+        });
+      } catch (error) {
+        console.error('Failed to fetch git info:', error);
+      }
+    };
+    
+    fetchGitInfo();
+  }, []);
+
   const summaryMetrics = {
     totalFlows: 12,
     activeFlows: 8,
@@ -123,6 +149,29 @@ export function FlowReportPage() {
 
   return (
     <main className="min-h-screen bg-background p-8 space-y-6">
+      {/* Git Commit Info */}
+      {gitInfo && (
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              <div className="flex items-center gap-2">
+                <GitCommit className="h-4 w-4 text-primary" />
+                <span className="text-sm font-medium text-muted-foreground">Latest Commit:</span>
+                <span className="font-mono text-sm text-foreground">{gitInfo.lastCommit.hash}</span>
+              </div>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                <span className="text-sm font-medium text-foreground">{gitInfo.lastCommit.message}</span>
+                <span className="text-sm text-muted-foreground">by {gitInfo.lastCommit.author}</span>
+                <span className="text-sm text-muted-foreground">{new Date(gitInfo.lastCommit.date).toLocaleDateString()}</span>
+                <Badge variant="outline" className="text-xs">
+                  {gitInfo.lastCommit.branch}
+                </Badge>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Simple Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
