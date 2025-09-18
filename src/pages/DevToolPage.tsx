@@ -127,6 +127,30 @@ export function DevToolPage() {
     return (
       <div className="flex items-center justify-between px-2 py-4 border-t border-border bg-muted/20">
         <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Items per page:</span>
+            <Select 
+              value={itemsPerPageValue.toString()} 
+              onValueChange={(value) => handleItemsPerPageChange(category, parseInt(value))}
+            >
+              <SelectTrigger className="w-20">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="5">5</SelectItem>
+                <SelectItem value="10">10</SelectItem>
+                <SelectItem value="15">15</SelectItem>
+                <SelectItem value="20">20</SelectItem>
+                <SelectItem value="25">25</SelectItem>
+                <SelectItem value="30">30</SelectItem>
+                <SelectItem value="40">40</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="text-sm text-muted-foreground">
+            Showing {(current - 1) * itemsPerPageValue + 1} to {Math.min(current * itemsPerPageValue, totalItems)} of {totalItems} entries
+          </div>
         </div>
         
         {totalPages > 1 && (
@@ -300,6 +324,7 @@ export function DevToolPage() {
                           className="h-8 px-3" 
                           onClick={() => navigate(`/flows/${flow.id}`)}
                         >
+                          <Eye className="mr-1 h-3 w-3" />
                           View
                         </Button>
                         <Button 
@@ -308,6 +333,7 @@ export function DevToolPage() {
                           className="h-8 px-3" 
                           onClick={() => handleExportFlow(flow)}
                         >
+                          <Download className="mr-1 h-3 w-3" />
                           Export
                         </Button>
                         <Button 
@@ -316,6 +342,7 @@ export function DevToolPage() {
                           className="h-8 px-3" 
                           onClick={() => handleCloneFlow(flow)}
                         >
+                          <Copy className="mr-1 h-3 w-3" />
                           Clone
                         </Button>
                         <Button 
@@ -324,6 +351,7 @@ export function DevToolPage() {
                           className="h-8 px-3 text-destructive hover:text-destructive" 
                           onClick={() => handleDeleteFlow(flow.id)}
                         >
+                          <Trash2 className="mr-1 h-3 w-3" />
                           Delete
                         </Button>
                       </div>
@@ -433,6 +461,7 @@ export function DevToolPage() {
                           className="h-8 px-3" 
                           onClick={() => navigate(`/nodes/${node.id}`)}
                         >
+                          <Eye className="mr-1 h-3 w-3" />
                           View
                         </Button>
                         <Button 
@@ -441,6 +470,7 @@ export function DevToolPage() {
                           className="h-8 px-3" 
                           onClick={() => handleExportNode(node)}
                         >
+                          <Download className="mr-1 h-3 w-3" />
                           Export
                         </Button>
                         <Button 
@@ -448,6 +478,7 @@ export function DevToolPage() {
                           size="sm" 
                           className="h-8 px-3"
                         >
+                          <Copy className="mr-1 h-3 w-3" />
                           Clone
                         </Button>
                         <Button 
@@ -456,6 +487,7 @@ export function DevToolPage() {
                           className="h-8 px-3 text-destructive hover:text-destructive" 
                           onClick={() => handleDeleteNode(node.id)}
                         >
+                          <Trash2 className="mr-1 h-3 w-3" />
                           Delete
                         </Button>
                       </div>
@@ -554,6 +586,7 @@ export function DevToolPage() {
                           className="h-8 px-3" 
                           onClick={() => navigate(`/subnodes/${subnode.id}`)}
                         >
+                          <Eye className="mr-1 h-3 w-3" />
                           View
                         </Button>
                         <Button 
@@ -562,6 +595,7 @@ export function DevToolPage() {
                           className="h-8 px-3" 
                           onClick={() => handleExportSubnode(subnode)}
                         >
+                          <Download className="mr-1 h-3 w-3" />
                           Export
                         </Button>
                         <Button 
@@ -569,6 +603,7 @@ export function DevToolPage() {
                           size="sm" 
                           className="h-8 px-3"
                         >
+                          <Copy className="mr-1 h-3 w-3" />
                           Clone
                         </Button>
                         <Button 
@@ -577,6 +612,7 @@ export function DevToolPage() {
                           className="h-8 px-3 text-destructive hover:text-destructive" 
                           onClick={() => handleDeleteSubnode(subnode.id)}
                         >
+                          <Trash2 className="mr-1 h-3 w-3" />
                           Delete
                         </Button>
                       </div>
@@ -679,6 +715,7 @@ export function DevToolPage() {
                           className="h-8 px-3" 
                           onClick={() => navigate(`/parameters/${param.id}`)}
                         >
+                          <Eye className="mr-1 h-3 w-3" />
                           View
                         </Button>
                         <Button 
@@ -687,6 +724,7 @@ export function DevToolPage() {
                           className="h-8 px-3" 
                           onClick={() => handleExportParameter(param.id)}
                         >
+                          <Download className="mr-1 h-3 w-3" />
                           Export
                         </Button>
                         <Button 
@@ -694,6 +732,7 @@ export function DevToolPage() {
                           size="sm" 
                           className="h-8 px-3"
                         >
+                          <Copy className="mr-1 h-3 w-3" />
                           Clone
                         </Button>
                         <Button 
@@ -702,6 +741,7 @@ export function DevToolPage() {
                           className="h-8 px-3 text-destructive hover:text-destructive" 
                           onClick={() => handleDeleteParameter(param.id)}
                         >
+                          <Trash2 className="mr-1 h-3 w-3" />
                           Delete
                         </Button>
                       </div>
