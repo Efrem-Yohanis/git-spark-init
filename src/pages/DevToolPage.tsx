@@ -24,7 +24,8 @@ import {
   ChevronLeft,
   ChevronRight,
   RefreshCcw,
-  ExternalLink
+  ExternalLink,
+  GitCommit
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -919,6 +920,29 @@ export function DevToolPage() {
   return (
     <div className="min-h-screen bg-background">
       <div className="w-full p-6 space-y-8">
+
+        {/* Git Commit Info */}
+        {gitInfo && (
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <GitCommit className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-medium text-muted-foreground">Latest Commit:</span>
+                  <span className="font-mono text-sm text-foreground">{gitInfo.lastCommit.hash}</span>
+                </div>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                  <span className="text-sm font-medium text-foreground">{gitInfo.lastCommit.message}</span>
+                  <span className="text-sm text-muted-foreground">by {gitInfo.lastCommit.author}</span>
+                  <span className="text-sm text-muted-foreground">{new Date(gitInfo.lastCommit.date).toLocaleDateString()}</span>
+                  <Badge variant="outline" className="text-xs">
+                    {gitInfo.lastCommit.branch}
+                  </Badge>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Professional Tabs */}
         <div className="bg-card border border-border rounded-lg shadow-sm">
