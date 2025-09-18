@@ -229,15 +229,24 @@ export function HomePage() {
               </div>
             </div>
             
-            <div className="flex items-center gap-6 text-sm text-muted-foreground">
-              <span>Uptime: 99.9%</span>
-              <span>Active Flows: 4</span>
-              <span>Total Processes: 142</span>
+            <div className="flex flex-col lg:flex-row items-start lg:items-center gap-4 lg:gap-6 text-sm text-muted-foreground">
+              <div className="flex items-center gap-6">
+                <span>Uptime: 99.9%</span>
+                <span>Active Flows: 4</span>
+                <span>Total Processes: 142</span>
+              </div>
               {gitInfo && (
-                <div className="flex items-center gap-2">
-                  <GitCommit className="h-4 w-4" />
-                  <span className="font-mono">{gitInfo.lastCommit.hash}</span>
-                  <span>by {gitInfo.lastCommit.author}</span>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 p-3 bg-muted/30 border border-border">
+                  <div className="flex items-center gap-2">
+                    <GitCommit className="h-4 w-4 text-primary" />
+                    <span className="font-mono text-foreground">{gitInfo.lastCommit.hash}</span>
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+                    <span className="text-foreground font-medium">{gitInfo.lastCommit.message}</span>
+                    <span>by {gitInfo.lastCommit.author}</span>
+                    <span>{new Date(gitInfo.lastCommit.date).toLocaleDateString()}</span>
+                    <span className="text-xs bg-primary/20 text-primary px-2 py-1 font-medium">{gitInfo.lastCommit.branch}</span>
+                  </div>
                 </div>
               )}
             </div>

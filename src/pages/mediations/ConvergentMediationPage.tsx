@@ -1,20 +1,8 @@
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { 
-  AlertTriangle, 
-  CheckCircle, 
-  Clock, 
-  Monitor,
-  RefreshCw,
-  Bell,
-  Play,
-  Square,
-  AlertCircle,
-  Info,
-  GitMerge
-} from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const convergentStreams = [
@@ -69,15 +57,6 @@ export function ConvergentMediationPage() {
     setRefreshing(false);
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "RUNNING": return "text-success";
-      case "PARTIAL": return "text-warning";
-      case "STOPPED": return "text-muted-foreground";
-      default: return "text-muted-foreground";
-    }
-  };
-
   const getStatusBadge = (status: string) => {
     const variant = status === "RUNNING" ? "default" :
                    status === "PARTIAL" ? "secondary" : 
@@ -93,24 +72,17 @@ export function ConvergentMediationPage() {
   return (
     <div className="min-h-screen bg-background">
       <div className="space-y-6 p-6">
-        {/* Dashboard Header */}
+        {/* Header */}
         <Card className="border border-border bg-card">
           <CardContent className="p-6">
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
               <div className="space-y-2">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-muted">
-                    <GitMerge className="h-6 w-6 text-primary" />
-                  </div>
-                  <div>
-                    <h1 className="text-2xl font-bold text-foreground">
-                      Convergent Mediation
-                    </h1>
-                    <p className="text-sm text-muted-foreground">
-                      Real-time monitoring of unified billing and rating streams
-                    </p>
-                  </div>
-                </div>
+                <h1 className="text-2xl font-bold text-foreground">
+                  Convergent Mediation
+                </h1>
+                <p className="text-sm text-muted-foreground">
+                  Real-time monitoring of unified billing and rating streams
+                </p>
               </div>
               
               <div className="flex flex-wrap items-center gap-2">
@@ -128,7 +100,7 @@ export function ConvergentMediationPage() {
                   <div className="text-xs text-muted-foreground">
                     {currentTime.toLocaleDateString()}
                   </div>
-                  <div className="text-sm font-bold text-primary">
+                  <div className="text-sm font-bold text-foreground">
                     {currentTime.toLocaleTimeString('en-US', { hour12: false })}
                   </div>
                 </div>
@@ -141,97 +113,55 @@ export function ConvergentMediationPage() {
         <div className="grid gap-4 md:grid-cols-6">
           <Card className="border border-border bg-card">
             <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-muted">
-                  <Play className="h-5 w-5 text-success" />
-                </div>
-                <div>
-                  <div className="text-2xl font-bold text-success">
-                    {convergentStreams.filter(stream => stream.status === "RUNNING").length}
-                  </div>
-                  <div className="text-sm text-muted-foreground">All Running Streams</div>
-                </div>
+              <div className="text-2xl font-bold text-success">
+                {convergentStreams.filter(stream => stream.status === "RUNNING").length}
               </div>
+              <div className="text-sm text-muted-foreground">Running Streams</div>
             </CardContent>
           </Card>
           
           <Card className="border border-border bg-card">
             <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-muted">
-                  <Square className="h-5 w-5 text-destructive" />
-                </div>
-                <div>
-                  <div className="text-2xl font-bold text-destructive">
-                    {convergentStreams.filter(stream => stream.status === "STOPPED").length}
-                  </div>
-                  <div className="text-sm text-muted-foreground">All Stopped Streams</div>
-                </div>
+              <div className="text-2xl font-bold text-destructive">
+                {convergentStreams.filter(stream => stream.status === "STOPPED").length}
               </div>
+              <div className="text-sm text-muted-foreground">Stopped Streams</div>
             </CardContent>
           </Card>
           
           <Card className="border border-border bg-card">
             <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-muted">
-                  <Monitor className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <div className="text-2xl font-bold text-primary">
-                    {convergentStreams.length}
-                  </div>
-                  <div className="text-sm text-muted-foreground">All Streams</div>
-                </div>
+              <div className="text-2xl font-bold text-foreground">
+                {convergentStreams.length}
               </div>
+              <div className="text-sm text-muted-foreground">Total Streams</div>
             </CardContent>
           </Card>
 
           <Card className="border border-border bg-card">
             <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-muted">
-                  <AlertTriangle className="h-5 w-5 text-destructive" />
-                </div>
-                <div>
-                  <div className="text-2xl font-bold text-destructive">
-                    335
-                  </div>
-                  <div className="text-sm text-muted-foreground">Total Errors</div>
-                </div>
+              <div className="text-2xl font-bold text-destructive">
+                335
               </div>
+              <div className="text-sm text-muted-foreground">Total Errors</div>
             </CardContent>
           </Card>
 
           <Card className="border border-border bg-card">
             <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-muted">
-                  <AlertCircle className="h-5 w-5 text-warning" />
-                </div>
-                <div>
-                  <div className="text-2xl font-bold text-warning">
-                    251
-                  </div>
-                  <div className="text-sm text-muted-foreground">Total Warnings</div>
-                </div>
+              <div className="text-2xl font-bold text-warning">
+                251
               </div>
+              <div className="text-sm text-muted-foreground">Total Warnings</div>
             </CardContent>
           </Card>
 
           <Card className="border border-border bg-card">
             <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-muted">
-                  <Info className="h-5 w-5 text-info" />
-                </div>
-                <div>
-                  <div className="text-2xl font-bold text-info">
-                    43
-                  </div>
-                  <div className="text-sm text-muted-foreground">Info Messages</div>
-                </div>
+              <div className="text-2xl font-bold text-info">
+                43
               </div>
+              <div className="text-sm text-muted-foreground">Info Messages</div>
             </CardContent>
           </Card>
         </div>
@@ -328,7 +258,7 @@ export function ConvergentMediationPage() {
             </div>
             <div className="flex items-center justify-between px-4 py-3 border-t border-border bg-muted/20">
               <div className="text-sm text-muted-foreground">
-                Showing 1 to {convergentStreams.length} of {convergentStreams.length} flows
+                Showing 1 to {convergentStreams.length} of {convergentStreams.length} streams
               </div>
               <div className="flex items-center gap-2">
                 <Button variant="outline" size="sm" disabled>
