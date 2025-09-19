@@ -18,12 +18,13 @@ import '@xyflow/react/dist/style.css';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Save, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Save, AlertCircle, Workflow, Network, GitFork, Database, Settings } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 
 import { CollapsibleNodePalette } from './CollapsibleNodePalette';
 import { EnhancedFlowNode } from './EnhancedFlowNode';
+
 import { flowService, useFlow } from '@/services/flowService';
 import { nodeService } from '@/services/nodeService';
 
@@ -68,6 +69,9 @@ export function RealTimeFlowEditor({ flowId }: RealTimeFlowEditorProps) {
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   
+  // Panel collapse states
+  const [isLeftPanelCollapsed, setIsLeftPanelCollapsed] = useState(false);
+  
   // Real-time state
   const [flowNodeMap, setFlowNodeMap] = useState<Map<string, string>>(new Map()); // Canvas node ID -> FlowNode ID
   const [isValidating, setIsValidating] = useState(false);
@@ -90,10 +94,39 @@ export function RealTimeFlowEditor({ flowId }: RealTimeFlowEditorProps) {
           const apiNode = graphData.nodes[i];
           const canvasNodeId = `canvas-${apiNode.id}`;
           
-          // Get node family data for display
-          try {
-            const nodeFamily = await nodeService.getNode(apiNode.node_family);
-            const nodeType = determineNodeType(nodeFamily.name);
+            // Get node family data for display
+            try {
+              const nodeFamily = await nodeService.getNode(apiNode.node_family);
+              
+              // Use subnodes from node family data if available, otherwise fetch from service
+              let subnodes: any[] = [];
+              
+              // First try to get subnodes from the node family's published version
+              if (nodeFamily.published_version?.subnodes && nodeFamily.published_version.subnodes.length > 0) {
+                subnodes = nodeFamily.published_version.subnodes.map((subnode: any) => ({
+                  id: subnode.id,
+                  name: subnode.name,
+                  description: subnode.description || ''
+                }));
+              } else {
+                // Fallback: Fetch from subnode service
+                try {
+                  const { subnodeService } = await import('@/services/subnodeService');
+                  const allSubnodes = await subnodeService.getAllSubnodes();
+                  subnodes = allSubnodes.results
+                    .filter((subnode: any) => subnode.node_family === apiNode.node_family)
+                    .map((subnode: any) => ({
+                      id: subnode.id,
+                      name: subnode.name,
+                      description: subnode.description
+                    }));
+                } catch (subnodeError) {
+                  console.warn('Could not load subnodes for node:', apiNode.node_family, subnodeError);
+                  subnodes = [];
+                }
+              }
+              
+              const nodeType = determineNodeType(nodeFamily.name);
             
             const canvasNode: Node = {
               id: canvasNodeId,
@@ -105,7 +138,7 @@ export function RealTimeFlowEditor({ flowId }: RealTimeFlowEditorProps) {
                 nodeId: apiNode.node_family,
                 flowNodeId: apiNode.id,
                 selectedSubnode: apiNode.selected_subnode,
-                subnodes: nodeFamily.versions?.[0]?.subnodes || [],
+                subnodes: subnodes,
                 onSubnodeChange: handleSubnodeChange,
               },
             };
@@ -194,6 +227,35 @@ export function RealTimeFlowEditor({ flowId }: RealTimeFlowEditorProps) {
 
         // Get node family data for display
         const nodeFamily = await nodeService.getNode(nodeId);
+        
+        // Use subnodes from node family data if available, otherwise fetch from service
+        let subnodes: any[] = [];
+        
+        // First try to get subnodes from the node family's published version
+        if (nodeFamily.published_version?.subnodes && nodeFamily.published_version.subnodes.length > 0) {
+          subnodes = nodeFamily.published_version.subnodes.map((subnode: any) => ({
+            id: subnode.id,
+            name: subnode.name,
+            description: subnode.description || ''
+          }));
+        } else {
+          // Fallback: Fetch from subnode service
+          try {
+            const { subnodeService } = await import('@/services/subnodeService');
+            const allSubnodes = await subnodeService.getAllSubnodes();
+            subnodes = allSubnodes.results
+              .filter((subnode: any) => subnode.node_family === nodeId)
+              .map((subnode: any) => ({
+                id: subnode.id,
+                name: subnode.name,
+                description: subnode.description
+              }));
+          } catch (subnodeError) {
+            console.warn('Could not load subnodes for node:', nodeId, subnodeError);
+            subnodes = [];
+          }
+        }
+        
         const nodeType = determineNodeType(nodeFamily.name);
         
         // Create canvas node
@@ -208,7 +270,7 @@ export function RealTimeFlowEditor({ flowId }: RealTimeFlowEditorProps) {
             nodeId: nodeId,
             flowNodeId: flowNode.id,
             selectedSubnode: flowNode.selected_subnode,
-            subnodes: nodeFamily.versions?.[0]?.subnodes || [],
+            subnodes: subnodes,
             onSubnodeChange: handleSubnodeChange,
           },
         };
@@ -456,88 +518,149 @@ export function RealTimeFlowEditor({ flowId }: RealTimeFlowEditorProps) {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-background">
-      {/* Header - Matching Uniform Detail Page Style */}
-      <div className="border-b bg-card px-6 py-4">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-4">
-            <h1 className="text-4xl font-bold">{flowData?.name || `Flow ${flowId}`}</h1>
-            <div className="flex items-center space-x-2">
-              <div className="px-2 py-1 border border-border text-sm font-semibold">
-                v1
+    <div className="h-screen flex flex-col bg-gradient-to-br from-background via-background to-muted/20">
+      {/* Professional Header */}
+      <div className="bg-card/95 backdrop-blur-sm border-b border-border/60 shadow-sm">
+        <div className="px-8 py-6">
+          {/* Top Section */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-6">
+              <div className="flex items-center space-x-4">
+                <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center shadow-lg">
+                  <Workflow className="h-5 w-5 text-primary-foreground" />
+                </div>
+                <div>
+                  <h1 className="text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
+                    {flowData?.name || `Flow ${flowId}`}
+                  </h1>
+                </div>
               </div>
-              <Badge variant="secondary">Editing</Badge>
+            </div>
+            
+            <div className="flex items-center gap-3">
+              {validationErrors.length > 0 && (
+                <div className="flex items-center gap-2 px-3 py-2 bg-destructive/10 border border-destructive/20 rounded-lg">
+                  <AlertCircle className="h-4 w-4 text-destructive" />
+                  <span className="text-sm font-medium text-destructive">
+                    {validationErrors.length} error{validationErrors.length !== 1 ? 's' : ''}
+                  </span>
+                </div>
+              )}
+              
+              <Button 
+                onClick={handleSaveFlow}
+                disabled={isValidating}
+                className="px-6 py-2.5 bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary/80 shadow-lg hover:shadow-xl transition-all duration-200 gap-2 font-medium"
+              >
+                {isValidating ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary-foreground border-t-transparent" />
+                ) : (
+                  <Save className="h-4 w-4" />
+                )}
+                {isValidating ? 'Saving...' : 'Save Changes'}
+              </Button>
             </div>
           </div>
           
-          <div className="flex items-center gap-2">
-            {validationErrors.length > 0 && (
-              <Badge variant="destructive" className="gap-1">
-                <AlertCircle className="h-3 w-3" />
-                {validationErrors.length} errors
-              </Badge>
-            )}
-            
-            <Button 
-              size="sm" 
-              onClick={handleSaveFlow}
-              disabled={isValidating}
-              className="gap-2"
-            >
-              {isValidating ? (
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-foreground" />
-              ) : (
-                <Save className="h-4 w-4" />
-              )}
-              Save
-            </Button>
+          {/* Status Bar */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-6">
+              <div className="flex items-center space-x-2">
+                <div className="px-3 py-1.5 bg-muted border border-border rounded-md">
+                  <span className="text-sm font-semibold text-foreground">v1.0</span>
+                </div>
+                <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 font-medium">
+                  Editing Mode
+                </Badge>
+              </div>
+            </div>
           </div>
-        </div>
-        
-        <div className="flex items-center gap-4">
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 overflow-hidden flex">
-        {/* Collapsible Node Palette */}
-        <CollapsibleNodePalette onAddNode={() => {}} />
-        
-        {/* Flow Canvas */}
-        <div className="flex-1">
-          <div 
-            ref={reactFlowWrapper}
-            className="w-full h-full"
-            onDrop={onDrop}
-            onDragOver={onDragOver}
+      {/* Professional Main Content */}
+      <div className="flex-1 overflow-hidden relative">
+        {/* Mobile Panel Toggle Button */}
+        <div className="lg:hidden absolute top-4 left-4 z-30 flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsLeftPanelCollapsed(!isLeftPanelCollapsed)}
+            className="bg-card/95 backdrop-blur-sm border-border/60 shadow-lg"
           >
-            <ReactFlow
-              nodes={nodes}
-              edges={edges}
-              onNodesChange={onNodesChange}
-              onEdgesChange={onEdgesChange}
-              onConnect={onConnect}
-              onNodeClick={onNodeClick}
-              onPaneClick={onPaneClick}
-              nodeTypes={nodeTypes}
-              className="bg-background"
-              fitView
-              fitViewOptions={{ padding: 0.2 }}
-            >
-              <Controls className="bg-card border-border" />
-              <MiniMap 
-                className="bg-card border-border" 
-                nodeColor="#8b5cf6"
-                maskColor="rgba(0, 0, 0, 0.1)"
-              />
-              <Background 
-                variant={BackgroundVariant.Dots} 
-                gap={20} 
-                size={1} 
-                className="opacity-30" 
-              />
-            </ReactFlow>
+            <Database className="h-4 w-4" />
+          </Button>
+        </div>
+
+        {/* Overlay for mobile panels */}
+        {!isLeftPanelCollapsed && (
+          <div 
+            className="lg:hidden fixed inset-0 bg-background/80 backdrop-blur-sm z-10"
+            onClick={() => {
+              setIsLeftPanelCollapsed(true);
+            }}
+          />
+        )}
+
+        <div className="h-full flex">
+          {/* Left Sidebar - Node Palette */}
+          <div className={`transition-all duration-300 ${isLeftPanelCollapsed ? 'w-12' : 'w-96'} bg-card/95 backdrop-blur-sm border-r border-border/60 shadow-lg lg:shadow-none h-full`}>
+            <CollapsibleNodePalette 
+              isCollapsed={isLeftPanelCollapsed}
+              onToggleCollapse={setIsLeftPanelCollapsed}
+              onAddNode={async (nodeId) => {
+                const position = { x: Math.random() * 300 + 200, y: Math.random() * 200 + 150 };
+                const event = {
+                  preventDefault: () => {},
+                  dataTransfer: { getData: () => nodeId }
+                } as any;
+                await onDrop(event);
+              }} 
+            />
           </div>
+          
+          {/* Center - Canvas */}
+          <div className="flex-1 transition-all duration-300">
+            <div className="h-full relative">
+              {/* Canvas Toolbar - Removed */}
+              
+              <div 
+                ref={reactFlowWrapper}
+                className="w-full h-full"
+                onDrop={onDrop}
+                onDragOver={onDragOver}
+              >
+                <ReactFlow
+                  nodes={nodes}
+                  edges={edges}
+                  onNodesChange={onNodesChange}
+                  onEdgesChange={onEdgesChange}
+                  onConnect={onConnect}
+                  onNodeClick={onNodeClick}
+                  onPaneClick={onPaneClick}
+                  nodeTypes={nodeTypes}
+                  className="bg-gradient-to-br from-background/50 to-muted/30"
+                  fitView
+                  fitViewOptions={{ padding: 0.2 }}
+                >
+                  <Controls className="bg-card/95 backdrop-blur-sm border-border/60 shadow-lg [&>button]:bg-transparent [&>button]:border-border/60 [&>button]:hover:bg-muted/50" />
+                  <MiniMap 
+                    className="bg-card/95 backdrop-blur-sm border-border/60 shadow-lg rounded-lg overflow-hidden" 
+                    nodeColor="hsl(var(--primary))"
+                    maskColor="rgba(0, 0, 0, 0.05)"
+                  />
+                  <Background 
+                    variant={BackgroundVariant.Dots} 
+                    gap={24} 
+                    size={1.2} 
+                    className="opacity-40" 
+                    color="hsl(var(--border))"
+                  />
+                </ReactFlow>
+              </div>
+            </div>
+          </div>
+          
         </div>
       </div>
     </div>
