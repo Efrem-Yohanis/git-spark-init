@@ -94,11 +94,23 @@ export function CreateParameterPage() {
   }
 
   return (
-    <div className="w-full space-y-6">
+    <div className="space-y-6">
+      <div className="flex items-center space-x-4">
+        <Button
+          variant="outline"
+          onClick={() => navigate("/parameters")}
+          className="flex items-center"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to Parameters
+        </Button>
+        <h1 className="text-3xl font-bold">Create New Parameter</h1>
+      </div>
+
       <form onSubmit={handleSubmit} className="space-y-6">
-        <Card className="w-full">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-2xl font-bold">Create New Parameter</CardTitle>
+            <CardTitle>Parameter Details</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -155,32 +167,28 @@ export function CreateParameterPage() {
               />
               <Label htmlFor="required">Required Parameter</Label>
             </div>
-            {/* Action Buttons */}
-            <div className="flex items-center justify-end space-x-4 pt-6 border-t">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => navigate("/parameters")}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? "Creating..." : "Save"}
-              </Button>
-            </div>
           </CardContent>
         </Card>
-      </form>
 
-      {/* Back Button */}
-      <div className="flex justify-center">
-        <Button variant="ghost" onClick={() => navigate("/devtool")}>
-          Back to DevTool
-        </Button>
-      </div>
+        <div className="flex items-center space-x-4">
+          <Button
+            type="submit"
+            disabled={isSubmitting}
+            className="flex items-center"
+          >
+            <Save className="h-4 w-4 mr-2" />
+            {isSubmitting ? "Creating..." : "Create Parameter"}
+          </Button>
+          
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => navigate("/parameters")}
+          >
+            Cancel
+          </Button>
+        </div>
+      </form>
     </div>
   );
 }

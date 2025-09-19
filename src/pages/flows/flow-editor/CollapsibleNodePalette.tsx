@@ -18,8 +18,6 @@ import {
 
 interface CollapsibleNodePaletteProps {
   onAddNode: (nodeId: string) => void;
-  isCollapsed?: boolean;
-  onToggleCollapse?: (collapsed: boolean) => void;
 }
 
 // Icon mapping for different node types
@@ -54,27 +52,11 @@ const getNodeColor = (nodeName?: string) => {
   return 'bg-blue-500';
 };
 
-export function CollapsibleNodePalette({ 
-  onAddNode, 
-  isCollapsed: externalCollapsed, 
-  onToggleCollapse 
-}: CollapsibleNodePaletteProps) {
+export function CollapsibleNodePalette({ onAddNode }: CollapsibleNodePaletteProps) {
   const [nodes, setNodes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [internalCollapsed, setInternalCollapsed] = useState(false);
-  
-  // Use external collapsed state if provided, otherwise use internal state
-  const isCollapsed = externalCollapsed !== undefined ? externalCollapsed : internalCollapsed;
-  
-  const handleToggleCollapse = () => {
-    const newState = !isCollapsed;
-    if (onToggleCollapse) {
-      onToggleCollapse(newState);
-    } else {
-      setInternalCollapsed(newState);
-    }
-  };
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const fetchNodes = async () => {
     try {
@@ -109,7 +91,7 @@ export function CollapsibleNodePalette({
           <Button
             variant="ghost"
             size="sm"
-            onClick={handleToggleCollapse}
+            onClick={() => setIsCollapsed(!isCollapsed)}
             className="h-8 w-8 p-0 hover:bg-primary/10"
             title={isCollapsed ? "Expand Panel" : "Collapse Panel"}
           >
@@ -141,7 +123,7 @@ export function CollapsibleNodePalette({
           <Button
             variant="ghost"
             size="sm"
-            onClick={handleToggleCollapse}
+            onClick={() => setIsCollapsed(!isCollapsed)}
             className="h-8 w-8 p-0 hover:bg-primary/10"
             title={isCollapsed ? "Expand Panel" : "Collapse Panel"}
           >
@@ -183,7 +165,7 @@ export function CollapsibleNodePalette({
         <Button
           variant="ghost"
           size="sm"
-          onClick={handleToggleCollapse}
+          onClick={() => setIsCollapsed(!isCollapsed)}
           className="h-8 w-8 p-0 hover:bg-primary/10"
           title={isCollapsed ? "Expand Panel" : "Collapse Panel"}
         >

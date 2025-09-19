@@ -1,4 +1,7 @@
-import { TopNavbar } from "./top-navbar";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/app-sidebar";
+import { TopBar } from "./top-bar";
+import { SectionProvider } from "@/contexts/SectionContext";
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -6,12 +9,20 @@ interface MainLayoutProps {
 
 export function MainLayout({ children }: MainLayoutProps) {
   return (
-    <div className="min-h-screen flex flex-col w-full bg-background">
-      <TopNavbar />
-      
-      <main className="flex-1 overflow-auto">
-        {children}
-      </main>
-    </div>
+    <SectionProvider>
+      <SidebarProvider>
+        <div className="min-h-screen flex w-full bg-background">
+          <AppSidebar />
+          
+          <div className="flex-1 flex flex-col">
+            <TopBar />
+            
+            <main className="flex-1 p-6 overflow-auto">
+              {children}
+            </main>
+          </div>
+        </div>
+      </SidebarProvider>
+    </SectionProvider>
   );
 }
