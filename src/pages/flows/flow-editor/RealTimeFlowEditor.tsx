@@ -388,48 +388,50 @@ export function RealTimeFlowEditor({ flowId }: RealTimeFlowEditorProps) {
   );
 
   // 🎯 REAL-TIME FUNCTIONALITY 3: Select SubNode
-  const handleSubnodeChange = useCallback(async (nodeId: string, subnodeId: string) => {
-    console.log('🔄 Changing subnode for node:', nodeId, 'to:', subnodeId);
+  const handleSubnodeChange = useCallback(async (nodeKey: string, subnodeId: string) => {
+    console.log('🔄 Changing subnode for node key:', nodeKey, 'to:', subnodeId);
     
-    const flowNodeId = flowNodeMap.get(nodeId);
-    if (!flowNodeId) {
-      console.error('FlowNode ID not found for canvas node:', nodeId);
+    // Try to resolve flowNodeId from map; if not found, assume nodeKey is already a flowNodeId
+    const resolvedFlowNodeId = flowNodeMap.get(nodeKey) || nodeKey;
+
+    if (!resolvedFlowNodeId) {
+      console.error('FlowNode ID could not be resolved for key:', nodeKey);
       return;
     }
 
-    // Optimistically update UI
+    // Optimistically update UI for both canvas node id and flow node id
     setNodes((nds) =>
-      nds.map((node) =>
-        node.id === nodeId
-          ? { ...node, data: { ...node.data, selectedSubnode: subnodeId } }
-          : node
-      )
+      nds.map((node) => {
+        const matches = node.id === nodeKey || (node.data as any)?.flowNodeId === resolvedFlowNodeId;
+        return matches ? { ...node, data: { ...node.data, selectedSubnode: subnodeId } } : node;
+      })
     );
 
     try {
       // 🚀 Real-time API call: Set subnode immediately
-      const updatedFlowNode = await flowService.setFlowNodeSubnode(flowNodeId, subnodeId);
+      const updatedFlowNode = await flowService.setFlowNodeSubnode(resolvedFlowNodeId, subnodeId);
       console.log('✅ Subnode updated:', updatedFlowNode);
 
       // Update node data with parameters
       setNodes((nds) =>
-        nds.map((node) =>
-          node.id === nodeId
+        nds.map((node) => {
+          const matches = node.id === nodeKey || (node.data as any)?.flowNodeId === resolvedFlowNodeId;
+          return matches
             ? { 
                 ...node, 
                 data: { 
                   ...node.data, 
                   selectedSubnode: subnodeId,
-                  parameters: updatedFlowNode.parameters 
+                  parameters: (updatedFlowNode as any).parameters 
                 } 
               }
-            : node
-        )
+            : node;
+        })
       );
 
       toast({
-        title: "Subnode Selected",
-        description: "Subnode selection updated with parameters.",
+        title: 'Subnode Selected',
+        description: 'Subnode selection updated with parameters.',
       });
 
     } catch (error) {
@@ -437,17 +439,16 @@ export function RealTimeFlowEditor({ flowId }: RealTimeFlowEditorProps) {
       
       // Revert optimistic update
       setNodes((nds) =>
-        nds.map((node) =>
-          node.id === nodeId
-            ? { ...node, data: { ...node.data, selectedSubnode: node.data.selectedSubnode } }
-            : node
-        )
+        nds.map((node) => {
+          const matches = node.id === nodeKey || (node.data as any)?.flowNodeId === resolvedFlowNodeId;
+          return matches ? { ...node, data: { ...node.data, selectedSubnode: (node.data as any).selectedSubnode } } : node;
+        })
       );
       
       toast({
-        title: "Update Error",
-        description: "Failed to update subnode selection.",
-        variant: "destructive"
+        title: 'Update Error',
+        description: 'Failed to update subnode selection.',
+        variant: 'destructive'
       });
     }
   }, [flowNodeMap, setNodes, toast]);
@@ -529,10 +530,16 @@ export function RealTimeFlowEditor({ flowId }: RealTimeFlowEditorProps) {
                 <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center shadow-lg">
                   <Workflow className="h-5 w-5 text-primary-foreground" />
                 </div>
-                <div>
+                <div className="flex items-center gap-3 flex-wrap">
                   <h1 className="text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
                     {flowData?.name || `Flow ${flowId}`}
                   </h1>
+                  <div className="px-3 py-1.5 bg-muted border border-border rounded-md">
+                    <span className="text-sm font-semibold text-foreground">v1.0</span>
+                  </div>
+                  <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 font-medium">
+                    Editing Mode
+                  </Badge>
                 </div>
               </div>
             </div>
@@ -562,19 +569,7 @@ export function RealTimeFlowEditor({ flowId }: RealTimeFlowEditorProps) {
             </div>
           </div>
           
-          {/* Status Bar */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-6">
-              <div className="flex items-center space-x-2">
-                <div className="px-3 py-1.5 bg-muted border border-border rounded-md">
-                  <span className="text-sm font-semibold text-foreground">v1.0</span>
-                </div>
-                <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 font-medium">
-                  Editing Mode
-                </Badge>
-              </div>
-            </div>
-          </div>
+          {/* Status Section removed to align version and mode with name */}
         </div>
       </div>
 
