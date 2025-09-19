@@ -94,10 +94,39 @@ export function RealTimeFlowEditor({ flowId }: RealTimeFlowEditorProps) {
           const apiNode = graphData.nodes[i];
           const canvasNodeId = `canvas-${apiNode.id}`;
           
-          // Get node family data for display
-          try {
-            const nodeFamily = await nodeService.getNode(apiNode.node_family);
-            const nodeType = determineNodeType(nodeFamily.name);
+            // Get node family data for display
+            try {
+              const nodeFamily = await nodeService.getNode(apiNode.node_family);
+              
+              // Use subnodes from node family data if available, otherwise fetch from service
+              let subnodes: any[] = [];
+              
+              // First try to get subnodes from the node family's published version
+              if (nodeFamily.published_version?.subnodes && nodeFamily.published_version.subnodes.length > 0) {
+                subnodes = nodeFamily.published_version.subnodes.map((subnode: any) => ({
+                  id: subnode.id,
+                  name: subnode.name,
+                  description: subnode.description || ''
+                }));
+              } else {
+                // Fallback: Fetch from subnode service
+                try {
+                  const { subnodeService } = await import('@/services/subnodeService');
+                  const allSubnodes = await subnodeService.getAllSubnodes();
+                  subnodes = allSubnodes.results
+                    .filter((subnode: any) => subnode.node_family === apiNode.node_family)
+                    .map((subnode: any) => ({
+                      id: subnode.id,
+                      name: subnode.name,
+                      description: subnode.description
+                    }));
+                } catch (subnodeError) {
+                  console.warn('Could not load subnodes for node:', apiNode.node_family, subnodeError);
+                  subnodes = [];
+                }
+              }
+              
+              const nodeType = determineNodeType(nodeFamily.name);
             
             const canvasNode: Node = {
               id: canvasNodeId,
@@ -109,7 +138,7 @@ export function RealTimeFlowEditor({ flowId }: RealTimeFlowEditorProps) {
                 nodeId: apiNode.node_family,
                 flowNodeId: apiNode.id,
                 selectedSubnode: apiNode.selected_subnode,
-                subnodes: nodeFamily.versions?.[0]?.subnodes || [],
+                subnodes: subnodes,
                 onSubnodeChange: handleSubnodeChange,
               },
             };
@@ -198,6 +227,35 @@ export function RealTimeFlowEditor({ flowId }: RealTimeFlowEditorProps) {
 
         // Get node family data for display
         const nodeFamily = await nodeService.getNode(nodeId);
+        
+        // Use subnodes from node family data if available, otherwise fetch from service
+        let subnodes: any[] = [];
+        
+        // First try to get subnodes from the node family's published version
+        if (nodeFamily.published_version?.subnodes && nodeFamily.published_version.subnodes.length > 0) {
+          subnodes = nodeFamily.published_version.subnodes.map((subnode: any) => ({
+            id: subnode.id,
+            name: subnode.name,
+            description: subnode.description || ''
+          }));
+        } else {
+          // Fallback: Fetch from subnode service
+          try {
+            const { subnodeService } = await import('@/services/subnodeService');
+            const allSubnodes = await subnodeService.getAllSubnodes();
+            subnodes = allSubnodes.results
+              .filter((subnode: any) => subnode.node_family === nodeId)
+              .map((subnode: any) => ({
+                id: subnode.id,
+                name: subnode.name,
+                description: subnode.description
+              }));
+          } catch (subnodeError) {
+            console.warn('Could not load subnodes for node:', nodeId, subnodeError);
+            subnodes = [];
+          }
+        }
+        
         const nodeType = determineNodeType(nodeFamily.name);
         
         // Create canvas node
@@ -212,7 +270,7 @@ export function RealTimeFlowEditor({ flowId }: RealTimeFlowEditorProps) {
             nodeId: nodeId,
             flowNodeId: flowNode.id,
             selectedSubnode: flowNode.selected_subnode,
-            subnodes: nodeFamily.versions?.[0]?.subnodes || [],
+            subnodes: subnodes,
             onSubnodeChange: handleSubnodeChange,
           },
         };
@@ -475,9 +533,6 @@ export function RealTimeFlowEditor({ flowId }: RealTimeFlowEditorProps) {
                   <h1 className="text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
                     {flowData?.name || `Flow ${flowId}`}
                   </h1>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Professional Flow Builder • Real-time collaboration
-                  </p>
                 </div>
               </div>
             </div>
@@ -517,24 +572,7 @@ export function RealTimeFlowEditor({ flowId }: RealTimeFlowEditorProps) {
                 <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 font-medium">
                   Editing Mode
                 </Badge>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <div className="w-2 h-2 bg-success rounded-full animate-pulse"></div>
-                  Auto-save enabled
-                </div>
               </div>
-            </div>
-            
-            <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-              <div className="flex items-center gap-2">
-                <Network className="h-4 w-4" />
-                <span>{nodes.length} nodes</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <GitFork className="h-4 w-4" />
-                <span>{edges.length} connections</span>
-              </div>
-              <div className="w-px h-4 bg-border"></div>
-              <span>Last saved: {new Date().toLocaleTimeString()}</span>
             </div>
           </div>
         </div>
@@ -568,6 +606,8 @@ export function RealTimeFlowEditor({ flowId }: RealTimeFlowEditorProps) {
           {/* Left Sidebar - Node Palette */}
           <div className={`transition-all duration-300 ${isLeftPanelCollapsed ? 'w-12' : 'w-96'} bg-card/95 backdrop-blur-sm border-r border-border/60 shadow-lg lg:shadow-none h-full`}>
             <CollapsibleNodePalette 
+              isCollapsed={isLeftPanelCollapsed}
+              onToggleCollapse={setIsLeftPanelCollapsed}
               onAddNode={async (nodeId) => {
                 const position = { x: Math.random() * 300 + 200, y: Math.random() * 200 + 150 };
                 const event = {
@@ -582,19 +622,7 @@ export function RealTimeFlowEditor({ flowId }: RealTimeFlowEditorProps) {
           {/* Center - Canvas */}
           <div className="flex-1 transition-all duration-300">
             <div className="h-full relative">
-              {/* Canvas Toolbar */}
-              <div className="absolute top-4 left-4 z-10 flex items-center gap-3">
-                <div className="bg-card/95 backdrop-blur-sm border border-border/60 rounded-lg shadow-lg px-3 py-2">
-                  <div className="flex items-center gap-2 text-sm">
-                    <div className="flex items-center gap-1">
-                      <div className="w-2 h-2 bg-primary rounded-full"></div>
-                      <span className="font-medium">Canvas</span>
-                    </div>
-                    <div className="w-px h-4 bg-border/60"></div>
-                    <span className="text-muted-foreground hidden sm:inline">Drag nodes to build your flow</span>
-                  </div>
-                </div>
-              </div>
+              {/* Canvas Toolbar - Removed */}
               
               <div 
                 ref={reactFlowWrapper}
