@@ -162,53 +162,6 @@ export function StreamsPage() {
 
   return (
     <div className="p-6 space-y-6">
-      {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-5">
-        <Card className="professional-card">
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-success">
-              {runningStreams}
-            </div>
-            <div className="text-sm text-muted-foreground">Running</div>
-          </CardContent>
-        </Card>
-        
-        <Card className="professional-card">
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-warning">
-              {partialStreams}
-            </div>
-            <div className="text-sm text-muted-foreground">Partial</div>
-          </CardContent>
-        </Card>
-        
-        <Card className="professional-card">
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-destructive">
-              {stoppedStreams}
-            </div>
-            <div className="text-sm text-muted-foreground">Stopped</div>
-          </CardContent>
-        </Card>
-
-        <Card className="professional-card">
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-destructive">
-              {totalErrors}
-            </div>
-            <div className="text-sm text-muted-foreground">Total Errors</div>
-          </CardContent>
-        </Card>
-
-        <Card className="professional-card">
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-warning">
-              {totalWarnings}
-            </div>
-            <div className="text-sm text-muted-foreground">Total Warnings</div>
-          </CardContent>
-        </Card>
-      </div>
 
       {/* Filters and Search */}
       <Card className="professional-card">
