@@ -339,7 +339,7 @@ export function FlowEditor() {
             Back to Flows
           </Button>
           <h1 className="text-xl font-semibold">
-            {flowData?.name || 'Flow Editor'}
+            {flowData?.name || 'Flow Editor'} v1.0 Editing
           </h1>
         </div>
         

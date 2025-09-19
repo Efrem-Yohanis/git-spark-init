@@ -168,7 +168,7 @@ export function StreamsPage() {
         <CardHeader>
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             <CardTitle className="text-lg font-semibold text-foreground">
-              Streams ({filteredStreams.length})
+              Total stream
             </CardTitle>
             
             <div className="flex flex-col sm:flex-row gap-3">
