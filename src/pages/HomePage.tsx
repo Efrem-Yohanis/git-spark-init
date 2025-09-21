@@ -87,22 +87,29 @@ export function HomePage() {
   useEffect(() => {
     const fetchGitInfo = async () => {
       try {
+        console.log('Fetching latest Git commit information...');
         const info = await gitService.getLatestCommit();
         setGitInfo(info);
-        console.log('Latest Git Commit Info:', {
+        console.log('✅ Latest Git Commit Info:', {
           hash: info.lastCommit.hash,
           message: info.lastCommit.message,
           author: info.lastCommit.author,
           date: new Date(info.lastCommit.date).toLocaleString(),
           branch: info.lastCommit.branch,
-          repository: info.repository.name
+          repository: info.repository.name,
+          totalCommits: info.totalCommits,
+          status: info.status
         });
       } catch (error) {
-        console.error('Failed to fetch git info:', error);
+        console.error('❌ Failed to fetch git info:', error);
       }
     };
     
     fetchGitInfo();
+    
+    // Auto-refresh every 5 minutes
+    const interval = setInterval(fetchGitInfo, 5 * 60 * 1000);
+    return () => clearInterval(interval);
   }, []);
 
   return (
