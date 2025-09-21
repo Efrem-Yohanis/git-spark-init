@@ -647,6 +647,13 @@ export function DevToolPage() {
                         <Button 
                           variant="ghost" 
                           size="sm" 
+                          className="h-8 px-2" 
+                        >
+                          <Copy className="h-3 w-3" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
                           className="h-8 px-2 text-destructive hover:text-destructive" 
                           onClick={() => handleDeleteNode(node.id)}
                         >
@@ -770,6 +777,13 @@ export function DevToolPage() {
                         <Button 
                           variant="ghost" 
                           size="sm" 
+                          className="h-8 px-2" 
+                        >
+                          <Copy className="h-3 w-3" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
                           className="h-8 px-2 text-destructive hover:text-destructive" 
                           onClick={() => handleDeleteSubnode(subnode.id)}
                         >
@@ -795,25 +809,22 @@ export function DevToolPage() {
           <TableHeader>
             <TableRow className="border-b border-border bg-muted/30">
               <TableHead className="h-12 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Name
-              </TableHead>
-              <TableHead className="h-12 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Data Type
-              </TableHead>
-              <TableHead className="h-12 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Direction
-              </TableHead>
-              <TableHead className="h-12 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Is Required
+                Parameter Name
               </TableHead>
               <TableHead className="h-12 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 Default Value
               </TableHead>
               <TableHead className="h-12 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Last Update Date
+                Data Type
+              </TableHead>
+              <TableHead className="h-12 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Status
               </TableHead>
               <TableHead className="h-12 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 Last Updated By
+              </TableHead>
+              <TableHead className="h-12 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Last Update Date
               </TableHead>
               <TableHead className="h-12 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider text-right">
                 Actions
@@ -823,7 +834,7 @@ export function DevToolPage() {
           <TableBody>
             {parameters.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
                   <div className="flex flex-col items-center gap-2">
                     <span className="text-sm">No parameters found</span>
                   </div>
@@ -837,73 +848,70 @@ export function DevToolPage() {
                 >
                   <TableCell className="px-6 py-4">
                     <div>
-                      <div className="font-medium text-foreground">{parameter.name}</div>
+                      <div className="font-medium text-foreground">{parameter.key}</div>
                     </div>
+                  </TableCell>
+                  <TableCell className="px-6 py-4 text-sm text-muted-foreground">
+                    {parameter.default_value || 'N/A'}
                   </TableCell>
                   <TableCell className="px-6 py-4">
                     <Badge variant="outline" className="text-xs">
-                      {parameter.data_type || 'String'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="px-6 py-4">
-                    <Badge 
-                      variant="outline" 
-                      className={`text-xs ${
-                        parameter.direction === 'INPUT' ? 'bg-info/20 text-info border-info' : 'bg-warning/20 text-warning border-warning'
-                      }`}
-                    >
-                      {parameter.direction || 'INPUT'}
+                      {parameter.datatype || 'String'}
                     </Badge>
                   </TableCell>
                   <TableCell className="px-6 py-4">
                     <Badge 
                       variant="outline"
-                      className={`text-xs ${
-                        parameter.is_required ? 'bg-destructive/20 text-destructive border-destructive' : 'bg-muted/20 text-muted-foreground border-muted'
+                      className={`text-xs font-medium ${
+                        parameter.is_active ? 'bg-success text-success-foreground border-success' : 'bg-warning text-warning-foreground border-warning'
                       }`}
                     >
-                      {parameter.is_required ? "Required" : "Optional"}
+                      {parameter.is_active ? "Active" : "Draft"}
                     </Badge>
                   </TableCell>
                   <TableCell className="px-6 py-4 text-sm text-muted-foreground">
-                    {parameter.default_value || 'N/A'}
+                    {parameter.created_by || 'System'}
                   </TableCell>
                   <TableCell className="px-6 py-4 text-sm text-muted-foreground">
-                    {parameter.updated_at ? new Date(parameter.updated_at).toLocaleDateString('en-US', {
+                    {parameter.created_at ? new Date(parameter.created_at).toLocaleDateString('en-US', {
                       year: 'numeric',
                       month: 'short',
                       day: 'numeric'
                     }) : 'N/A'}
                   </TableCell>
-                  <TableCell className="px-6 py-4 text-sm text-muted-foreground">
-                    {parameter.updated_by || 'System'}
-                  </TableCell>
                   <TableCell className="px-6 py-4">
                     <div className="flex items-center justify-end gap-1">
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="h-8 px-2" 
-                        onClick={() => navigate(`/parameters/${parameter.id}`)}
-                      >
-                        <Eye className="h-3 w-3" />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="h-8 px-2" 
-                        onClick={() => handleExportParameter(parameter)}
-                      >
-                        <Download className="h-3 w-3" />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="h-8 px-2 text-destructive hover:text-destructive" 
-                        onClick={() => handleDeleteParameter(parameter.id)}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-8 px-2" 
+                          onClick={() => navigate(`/parameters/${parameter.id}`)}
+                        >
+                          <Eye className="h-3 w-3" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-8 px-2" 
+                          onClick={() => handleExportParameter(parameter)}
+                        >
+                          <Download className="h-3 w-3" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-8 px-2" 
+                        >
+                          <Copy className="h-3 w-3" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-8 px-2 text-destructive hover:text-destructive" 
+                          onClick={() => handleDeleteParameter(parameter.id)}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -934,23 +942,13 @@ export function DevToolPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
-      <div className="container mx-auto px-6 py-8">
+      <div className="w-full px-6 py-8">
         {/* Enhanced Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-4xl font-bold text-foreground mb-2">Development Tools</h1>
               <p className="text-lg text-muted-foreground">Manage and monitor your enterprise development environment</p>
-            </div>
-            <div className="flex items-center gap-3">
-              <Button variant="outline" size="sm" onClick={() => setGitInfo(null)}>
-                <RefreshCcw className="mr-2 h-4 w-4" />
-                Refresh All
-              </Button>
-              <Button variant="default" size="sm">
-                <Settings className="mr-2 h-4 w-4" />
-                Settings
-              </Button>
             </div>
           </div>
         </div>
@@ -993,7 +991,7 @@ export function DevToolPage() {
                         <Upload className="mr-2 h-4 w-4" />
                         Import Flow
                       </Button>
-                      <Button onClick={() => setShowCreateFlowDialog(true)} className="bg-gradient-to-r from-primary to-primary-glow hover:shadow-lg transition-all duration-300">
+                      <Button onClick={() => setShowCreateFlowDialog(true)} className="bg-success text-success-foreground hover:bg-success/90">
                         <Plus className="mr-2 h-4 w-4" />
                         Create Flow
                       </Button>
@@ -1025,9 +1023,13 @@ export function DevToolPage() {
                         <Upload className="mr-2 h-4 w-4" />
                         Import Node
                       </Button>
-                      <Button onClick={() => navigate('/nodes/create')} className="bg-gradient-to-r from-info to-info/80 hover:shadow-lg transition-all duration-300">
+                      <Button onClick={() => navigate('/nodes/new')} className="bg-success text-success-foreground hover:bg-success/90">
                         <Plus className="mr-2 h-4 w-4" />
-                        Create Node
+                        Create New Node
+                      </Button>
+                      <Button variant="outline" size="sm">
+                        <Copy className="mr-2 h-4 w-4" />
+                        Clone
                       </Button>
                     </div>
                   </div>
@@ -1057,9 +1059,13 @@ export function DevToolPage() {
                         <Upload className="mr-2 h-4 w-4" />
                         Import Subnode
                       </Button>
-                      <Button onClick={() => navigate('/subnodes/create')} className="bg-gradient-to-r from-warning to-warning/80 hover:shadow-lg transition-all duration-300">
+                      <Button onClick={() => navigate('/subnodes/create')} className="bg-success text-success-foreground hover:bg-success/90">
                         <Plus className="mr-2 h-4 w-4" />
-                        Create Subnode
+                        Create New Subnode
+                      </Button>
+                      <Button variant="outline" size="sm">
+                        <Copy className="mr-2 h-4 w-4" />
+                        Clone
                       </Button>
                     </div>
                   </div>
@@ -1089,9 +1095,13 @@ export function DevToolPage() {
                         <Upload className="mr-2 h-4 w-4" />
                         Import Parameters
                       </Button>
-                      <Button onClick={() => navigate('/parameters/create')} className="bg-gradient-to-r from-success to-success/80 hover:shadow-lg transition-all duration-300">
+                      <Button onClick={() => navigate('/parameters/new')} className="bg-success text-success-foreground hover:bg-success/90">
                         <Plus className="mr-2 h-4 w-4" />
-                        Create Parameter
+                        Create New Parameter
+                      </Button>
+                      <Button variant="outline" size="sm">
+                        <Copy className="mr-2 h-4 w-4" />
+                        Clone
                       </Button>
                     </div>
                   </div>
