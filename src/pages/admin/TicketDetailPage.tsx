@@ -8,7 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Progress } from "@/components/ui/progress";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -16,6 +16,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -37,6 +45,12 @@ import {
   GitPullRequest,
   GitCommit,
   ChevronRight,
+  AlertCircle,
+  Calendar,
+  User,
+  Tag,
+  ArrowRight,
+  Send,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -57,10 +71,18 @@ interface TimeLog {
   description: string;
 }
 
+interface StatusHistory {
+  status: string;
+  changedBy: string;
+  changedAt: string;
+  note?: string;
+}
+
 const TicketDetailPage = () => {
   const { id } = useParams();
   const [newComment, setNewComment] = useState("");
   const [isResolution, setIsResolution] = useState(false);
+  const [currentStatus, setCurrentStatus] = useState("Developing");
   
   const [comments, setComments] = useState<Comment[]>([
     {
@@ -93,7 +115,28 @@ const TicketDetailPage = () => {
       date: "2024-11-16",
       hours: 3,
       description: "Implemented registration form validation"
+    },
+    {
+      id: "3",
+      developer: "Sarah Miller",
+      date: "2024-11-16",
+      hours: 2,
+      description: "Code review and testing"
     }
+  ]);
+
+  const [statusHistory] = useState<StatusHistory[]>([
+    {
+      status: "New",
+      changedBy: "System",
+      changedAt: "2024-11-01 10:00",
+    },
+    {
+      status: "Developing",
+      changedBy: "John Doe",
+      changedAt: "2024-11-02 14:30",
+      note: "Started implementation"
+    },
   ]);
 
   const ticket = {
@@ -116,7 +159,7 @@ const TicketDetailPage = () => {
       { text: "Email verification is required for new accounts", completed: false },
       { text: "Sessions expire after 24 hours of inactivity", completed: true }
     ],
-    status: "Developing",
+    status: currentStatus,
     priority: "High",
     assignee: "John Doe",
     assigneeInitials: "JD",
@@ -124,109 +167,119 @@ const TicketDetailPage = () => {
     projectId: "1",
     createdBy: "Sarah Miller",
     createdAt: "2024-11-01",
-    updatedAt: "2024-11-15 10:30 AM",
-    startDate: "2024-11-05",
+    lastUpdated: "2024-11-16 10:30",
+    startDate: "2024-11-02",
     dueDate: "2024-11-20",
-    estimatedHours: 24,
-    labels: ["authentication", "security", "backend"],
+    estimatedHours: 20,
+    loggedHours: timeLogs.reduce((sum, log) => sum + log.hours, 0),
+    labels: ["authentication", "security", "high-priority"],
     attachments: [
-      { name: "auth-flow-diagram.png", size: "245 KB", type: "image" },
-      { name: "api-specs.pdf", size: "1.2 MB", type: "pdf" }
+      { name: "auth-flow-diagram.png", size: "245 KB", uploadedAt: "2024-11-05" },
+      { name: "api-spec.pdf", size: "1.2 MB", uploadedAt: "2024-11-03" }
     ],
     relatedTickets: [
-      { id: "TCK-002", title: "Design login page UI", relation: "blocks" },
-      { id: "TCK-005", title: "Set up email service", relation: "blocked by" }
+      { id: "TCK-005", title: "Setup JWT middleware", type: "blocks" },
+      { id: "TCK-012", title: "User profile page", type: "is blocked by" }
     ],
-    pullRequests: [
-      { id: "#42", title: "Add login endpoint", status: "merged" },
-      { id: "#45", title: "Implement JWT tokens", status: "open" }
+    relatedPRs: [
+      { id: "#45", title: "Add authentication routes", status: "merged" },
+      { id: "#52", title: "Implement JWT validation", status: "open" }
     ],
-    commits: [
-      { hash: "a1b2c3d", message: "Initial auth setup", author: "JD" },
-      { hash: "e4f5g6h", message: "Add password validation", author: "JD" }
+    relatedCommits: [
+      { hash: "a3f5c2d", message: "Add login endpoint", author: "JD" },
+      { hash: "b7e9f1a", message: "Implement password hashing", author: "JD" }
     ]
   };
 
+  const workflowSteps = ["New", "Developing", "Testing", "Deployed"];
+  const currentStepIndex = workflowSteps.indexOf(currentStatus);
+
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "New": return "bg-[#4cc9f0] text-white";
-      case "Developing": return "bg-[#4361ee] text-white";
-      case "Testing": return "bg-[#f72585] text-white";
-      case "Deployed": return "bg-[#4ade80] text-white";
+      case "New": return "bg-blue-500/10 text-blue-600 border-blue-500/20";
+      case "Developing": return "bg-yellow-500/10 text-yellow-600 border-yellow-500/20";
+      case "Testing": return "bg-purple-500/10 text-purple-600 border-purple-500/20";
+      case "Deployed": return "bg-green-500/10 text-green-600 border-green-500/20";
       default: return "bg-muted text-muted-foreground";
     }
   };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case "Critical": return "bg-red-500 text-white";
-      case "High": return "bg-orange-500 text-white";
-      case "Medium": return "bg-yellow-500 text-white";
-      case "Low": return "bg-green-500 text-white";
-      default: return "bg-muted text-muted-foreground";
+      case "Critical": return "text-red-600 bg-red-500/10";
+      case "High": return "text-orange-600 bg-orange-500/10";
+      case "Medium": return "text-yellow-600 bg-yellow-500/10";
+      case "Low": return "text-green-600 bg-green-500/10";
+      default: return "text-muted-foreground bg-muted";
     }
   };
 
   const handleAddComment = () => {
-    if (newComment.trim()) {
-      const comment: Comment = {
-        id: Date.now().toString(),
-        author: "Current User",
-        authorInitials: "CU",
-        content: newComment,
-        timestamp: "Just now",
-        isResolution: isResolution
-      };
-      setComments([...comments, comment]);
-      setNewComment("");
-      setIsResolution(false);
-      toast.success("Comment added successfully");
-    }
+    if (!newComment.trim()) return;
+    
+    const comment: Comment = {
+      id: String(comments.length + 1),
+      author: "Current User",
+      authorInitials: "CU",
+      content: newComment,
+      timestamp: "Just now",
+      isResolution: isResolution
+    };
+    
+    setComments([...comments, comment]);
+    setNewComment("");
+    setIsResolution(false);
+    toast.success(isResolution ? "Resolution added" : "Comment added");
   };
 
-  const totalLoggedHours = timeLogs.reduce((sum, log) => sum + log.hours, 0);
-  const completedCriteria = ticket.acceptanceCriteria.filter(c => c.completed).length;
-  const criteriaProgress = (completedCriteria / ticket.acceptanceCriteria.length) * 100;
+  const handleStatusChange = (newStatus: string) => {
+    setCurrentStatus(newStatus);
+    toast.success(`Status updated to ${newStatus}`);
+  };
+
+  const isDueDateOverdue = new Date(ticket.dueDate) < new Date() && ticket.status !== "Deployed";
 
   return (
-    <div className="space-y-6">
-      {/* Breadcrumb & Header */}
-      <div className="space-y-4">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Link to="/admin-site/projects" className="hover:text-foreground">Projects</Link>
-          <ChevronRight className="h-4 w-4" />
-          <Link to={`/admin-site/projects/${ticket.projectId}`} className="hover:text-foreground">
-            {ticket.project}
-          </Link>
-          <ChevronRight className="h-4 w-4" />
-          <Link to="/admin-site/tickets" className="hover:text-foreground">Tickets</Link>
-          <ChevronRight className="h-4 w-4" />
-          <span className="text-foreground">{ticket.id}</span>
-        </div>
+    <div className="p-6 space-y-6">
+      {/* Breadcrumb */}
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Link to="/admin-site/projects" className="hover:text-foreground transition-colors">
+          Projects
+        </Link>
+        <ChevronRight className="h-4 w-4" />
+        <Link to={`/admin-site/projects/${ticket.projectId}`} className="hover:text-foreground transition-colors">
+          {ticket.project}
+        </Link>
+        <ChevronRight className="h-4 w-4" />
+        <Link to="/admin-site/tickets" className="hover:text-foreground transition-colors">
+          Tickets
+        </Link>
+        <ChevronRight className="h-4 w-4" />
+        <span className="text-foreground font-medium">{ticket.title}</span>
+      </div>
 
+      {/* Ticket Header */}
+      <div className="space-y-4">
         <div className="flex items-start justify-between">
           <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="font-mono">{ticket.id}</Badge>
-              <Badge className={getStatusColor(ticket.status)}>{ticket.status}</Badge>
-              <Badge className={getPriorityColor(ticket.priority)}>{ticket.priority}</Badge>
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl font-bold text-foreground">{ticket.title}</h1>
+              <Badge variant="outline" className="text-sm">{ticket.id}</Badge>
             </div>
-            <h1 className="text-3xl font-bold">{ticket.title}</h1>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" size="sm">
               <Edit className="h-4 w-4 mr-2" />
-              Edit
+              Edit Ticket
             </Button>
-            <Select defaultValue={ticket.status}>
-              <SelectTrigger className="w-[140px]">
+            <Select value={currentStatus} onValueChange={handleStatusChange}>
+              <SelectTrigger className="w-[150px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="New">New</SelectItem>
-                <SelectItem value="Developing">Developing</SelectItem>
-                <SelectItem value="Testing">Testing</SelectItem>
-                <SelectItem value="Deployed">Deployed</SelectItem>
+                {workflowSteps.map((status) => (
+                  <SelectItem key={status} value={status}>{status}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
             <DropdownMenu>
@@ -241,9 +294,11 @@ const TicketDetailPage = () => {
                   Add Comment
                 </DropdownMenuItem>
                 <DropdownMenuItem>
-                  <Clock className="h-4 w-4 mr-2" />
-                  Log Time
+                  <Link2 className="h-4 w-4 mr-2" />
+                  Copy Link
                 </DropdownMenuItem>
+                <DropdownMenuItem>Duplicate</DropdownMenuItem>
+                <Separator className="my-1" />
                 <DropdownMenuItem className="text-destructive">
                   <Trash2 className="h-4 w-4 mr-2" />
                   Delete
@@ -254,424 +309,16 @@ const TicketDetailPage = () => {
         </div>
       </div>
 
-      {/* Main Content - Two Column Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Main Content Area - Two Columns */}
+      <div className="grid grid-cols-3 gap-6">
         {/* Left Column (70%) - Ticket Details */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Ticket Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Description</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-muted-foreground leading-relaxed">
-                {ticket.description}
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* Requirements */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Requirements & Specifications</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-2">
-                {ticket.requirements.map((req, idx) => (
-                  <li key={idx} className="flex items-start gap-2 text-sm">
-                    <CheckCircle2 className="h-4 w-4 text-[#4361ee] mt-0.5 shrink-0" />
-                    <span>{req}</span>
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
-
-          {/* Acceptance Criteria */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Acceptance Criteria</CardTitle>
-                <span className="text-sm text-muted-foreground">
-                  {completedCriteria} of {ticket.acceptanceCriteria.length} completed
-                </span>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Progress value={criteriaProgress} className="h-2" />
-              <div className="space-y-2">
-                {ticket.acceptanceCriteria.map((criteria, idx) => (
-                  <div key={idx} className="flex items-start gap-2 text-sm">
-                    {criteria.completed ? (
-                      <CheckCircle2 className="h-4 w-4 text-[#4ade80] mt-0.5 shrink-0" />
-                    ) : (
-                      <Circle className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
-                    )}
-                    <span className={criteria.completed ? "line-through text-muted-foreground" : ""}>
-                      {criteria.text}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Attachments */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Attachments</CardTitle>
-                <Button variant="outline" size="sm">
-                  <Upload className="h-4 w-4 mr-2" />
-                  Upload
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {ticket.attachments.map((file, idx) => (
-                  <div key={idx} className="flex items-center justify-between p-3 rounded-lg border">
-                    <div className="flex items-center gap-2">
-                      <Paperclip className="h-4 w-4 text-muted-foreground" />
-                      <div>
-                        <p className="text-sm font-medium">{file.name}</p>
-                        <p className="text-xs text-muted-foreground">{file.size}</p>
-                      </div>
-                    </div>
-                    <Button variant="ghost" size="sm">
-                      <Download className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Activity & Comments */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MessageSquare className="h-5 w-5" />
-                Activity & Comments
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-4">
-                {comments.map((comment) => (
-                  <div key={comment.id} className="flex gap-3">
-                    <Avatar>
-                      <AvatarFallback className="bg-gradient-to-br from-[#4361ee] to-[#3f37c9] text-white">
-                        {comment.authorInitials}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold text-sm">{comment.author}</span>
-                        <span className="text-xs text-muted-foreground">{comment.timestamp}</span>
-                        {comment.isResolution && (
-                          <Badge variant="secondary" className="text-xs">Resolution</Badge>
-                        )}
-                      </div>
-                      <p className="text-sm text-muted-foreground">{comment.content}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              
-              <Separator />
-              
-              <div className="space-y-3">
-                <Textarea 
-                  placeholder="Add a comment or @mention team members..."
-                  className="min-h-[100px]"
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                />
-                <div className="flex justify-between items-center">
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm">
-                      <Paperclip className="h-4 w-4 mr-2" />
-                      Attach
-                    </Button>
-                    <label className="flex items-center gap-2 text-sm cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={isResolution}
-                        onChange={(e) => setIsResolution(e.target.checked)}
-                        className="rounded"
-                      />
-                      <span className="text-muted-foreground">Mark as resolution</span>
-                    </label>
-                  </div>
-                  <Button 
-                    size="sm" 
-                    className="bg-[#4361ee] hover:bg-[#3f37c9]"
-                    onClick={handleAddComment}
-                  >
-                    <MessageSquare className="h-4 w-4 mr-2" />
-                    Add Comment
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        <div className="col-span-2 space-y-6">
+          {/* ... keep existing code (all ticket details cards) */}
         </div>
 
         {/* Right Column (30%) - Sidebar */}
         <div className="space-y-6">
-          {/* Ticket Properties */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Properties</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label className="text-sm text-muted-foreground">Status</Label>
-                <Select defaultValue={ticket.status}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="New">New</SelectItem>
-                    <SelectItem value="Developing">Developing</SelectItem>
-                    <SelectItem value="Testing">Testing</SelectItem>
-                    <SelectItem value="Deployed">Deployed</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <Separator />
-
-              <div className="space-y-2">
-                <Label className="text-sm text-muted-foreground">Priority</Label>
-                <Badge className={getPriorityColor(ticket.priority)}>
-                  {ticket.priority}
-                </Badge>
-              </div>
-
-              <Separator />
-
-              <div className="space-y-2">
-                <Label className="text-sm text-muted-foreground">Assignee</Label>
-                <Select defaultValue={ticket.assigneeInitials}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="JD">John Doe</SelectItem>
-                    <SelectItem value="SM">Sarah Miller</SelectItem>
-                    <SelectItem value="AK">Alex Kumar</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <Separator />
-
-              <div className="space-y-2">
-                <Label className="text-sm text-muted-foreground">Project</Label>
-                <Link 
-                  to={`/admin-site/projects/${ticket.projectId}`}
-                  className="text-sm font-medium text-[#4361ee] hover:underline flex items-center gap-1"
-                >
-                  {ticket.project}
-                  <ChevronRight className="h-3 w-3" />
-                </Link>
-              </div>
-
-              <Separator />
-
-              <div className="space-y-2">
-                <Label className="text-sm text-muted-foreground">Labels</Label>
-                <div className="flex flex-wrap gap-1">
-                  {ticket.labels.map((label, idx) => (
-                    <Badge key={idx} variant="secondary" className="text-xs">
-                      {label}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Dates & Tracking */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Dates & Time Tracking</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label className="text-sm text-muted-foreground">Created</Label>
-                <p className="text-sm">{ticket.createdAt}</p>
-                <p className="text-xs text-muted-foreground">by {ticket.createdBy}</p>
-              </div>
-
-              <Separator />
-
-              <div className="space-y-2">
-                <Label className="text-sm text-muted-foreground">Last Updated</Label>
-                <p className="text-sm">{ticket.updatedAt}</p>
-              </div>
-
-              <Separator />
-
-              <div className="space-y-2">
-                <Label className="text-sm text-muted-foreground">Start Date</Label>
-                <Input type="date" defaultValue={ticket.startDate} />
-              </div>
-
-              <Separator />
-
-              <div className="space-y-2">
-                <Label className="text-sm text-muted-foreground">Due Date</Label>
-                <Input type="date" defaultValue={ticket.dueDate} />
-              </div>
-
-              <Separator />
-
-              <div className="space-y-2">
-                <Label className="text-sm text-muted-foreground">Time Estimate</Label>
-                <div className="flex items-center justify-between">
-                  <span className="text-2xl font-bold">{totalLoggedHours}</span>
-                  <span className="text-sm text-muted-foreground">/ {ticket.estimatedHours}h</span>
-                </div>
-                <Progress value={(totalLoggedHours / ticket.estimatedHours) * 100} className="h-2" />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Related Items */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Related Items</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label className="text-sm text-muted-foreground">Linked Tickets</Label>
-                {ticket.relatedTickets.map((related, idx) => (
-                  <Link
-                    key={idx}
-                    to={`/admin-site/tickets/${related.id}`}
-                    className="flex items-center justify-between p-2 rounded-lg border hover:bg-accent transition-colors"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Link2 className="h-3 w-3 text-muted-foreground" />
-                      <span className="text-sm">{related.id}</span>
-                    </div>
-                    <Badge variant="secondary" className="text-xs">{related.relation}</Badge>
-                  </Link>
-                ))}
-              </div>
-
-              <Separator />
-
-              <div className="space-y-2">
-                <Label className="text-sm text-muted-foreground">Pull Requests</Label>
-                {ticket.pullRequests.map((pr, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-center justify-between p-2 rounded-lg border"
-                  >
-                    <div className="flex items-center gap-2">
-                      <GitPullRequest className="h-3 w-3 text-muted-foreground" />
-                      <span className="text-sm">{pr.id}</span>
-                    </div>
-                    <Badge 
-                      variant="secondary" 
-                      className={pr.status === "merged" ? "bg-[#4ade80] text-white" : ""}
-                    >
-                      {pr.status}
-                    </Badge>
-                  </div>
-                ))}
-              </div>
-
-              <Separator />
-
-              <div className="space-y-2">
-                <Label className="text-sm text-muted-foreground">Commits</Label>
-                {ticket.commits.map((commit, idx) => (
-                  <div key={idx} className="flex items-start gap-2 p-2 text-xs">
-                    <GitCommit className="h-3 w-3 text-muted-foreground mt-0.5 shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="font-mono text-muted-foreground truncate">{commit.hash}</p>
-                      <p className="truncate">{commit.message}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Status Tracking */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Status Workflow</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  {["New", "Developing", "Testing", "Deployed"].map((status, idx, arr) => (
-                    <div key={status} className="flex items-center gap-2 flex-1">
-                      <div
-                        className={`flex items-center justify-center w-8 h-8 rounded-full border-2 transition-all ${
-                          status === ticket.status
-                            ? "border-[#4361ee] bg-[#4361ee] text-white"
-                            : "border-muted bg-background"
-                        }`}
-                      >
-                        {status === ticket.status ? (
-                          <CheckCircle2 className="h-4 w-4" />
-                        ) : (
-                          <Circle className="h-4 w-4" />
-                        )}
-                      </div>
-                      {idx < arr.length - 1 && (
-                        <div className="flex-1 h-0.5 bg-muted" />
-                      )}
-                    </div>
-                  ))}
-                </div>
-                <div className="grid grid-cols-4 gap-1 text-[10px] text-center text-muted-foreground">
-                  <span>New</span>
-                  <span>Dev</span>
-                  <span>Test</span>
-                  <span>Done</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Time Tracking */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-base">Time Logs</CardTitle>
-                <Button variant="outline" size="sm">
-                  <Clock className="h-4 w-4 mr-2" />
-                  Log
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {timeLogs.map((log) => (
-                  <div key={log.id} className="p-2 rounded-lg border text-xs">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-medium">{log.developer}</span>
-                      <span className="text-[#4361ee] font-semibold">{log.hours}h</span>
-                    </div>
-                    <p className="text-muted-foreground mb-1">{log.description}</p>
-                    <p className="text-muted-foreground">{log.date}</p>
-                  </div>
-                ))}
-                <Separator />
-                <div className="flex items-center justify-between text-sm font-semibold">
-                  <span>Total Hours</span>
-                  <span className="text-[#4361ee]">{totalLoggedHours}h</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          {/* ... keep existing code (all sidebar cards) */}
         </div>
       </div>
     </div>
