@@ -261,73 +261,79 @@ const TicketDetailPage = () => {
 
   return (
     <div className="p-6 space-y-6">
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Link to="/admin-site/projects" className="hover:text-foreground transition-colors">
-          Projects
-        </Link>
-        <ChevronRight className="h-4 w-4" />
-        <Link to={`/admin-site/projects/${ticket.projectId}`} className="hover:text-foreground transition-colors">
-          {ticket.project}
-        </Link>
-        <ChevronRight className="h-4 w-4" />
-        <Link to="/admin-site/tickets" className="hover:text-foreground transition-colors">
-          Tickets
-        </Link>
-        <ChevronRight className="h-4 w-4" />
-        <span className="text-foreground font-medium">{ticket.title}</span>
-      </div>
+      {/* Breadcrumb Card */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Link to="/admin-site/projects" className="hover:text-foreground transition-colors">
+              Projects
+            </Link>
+            <ChevronRight className="h-4 w-4" />
+            <Link to={`/admin-site/projects/${ticket.projectId}`} className="hover:text-foreground transition-colors">
+              {ticket.project}
+            </Link>
+            <ChevronRight className="h-4 w-4" />
+            <Link to="/admin-site/tickets" className="hover:text-foreground transition-colors">
+              Tickets
+            </Link>
+            <ChevronRight className="h-4 w-4" />
+            <span className="text-foreground font-medium">{ticket.title}</span>
+          </div>
+        </CardContent>
+      </Card>
 
-      {/* Ticket Header */}
-      <div className="space-y-4">
-        <div className="flex items-start justify-between">
-          <div className="space-y-2">
-            <div className="flex items-center gap-3">
-              <h1 className="text-3xl font-bold text-foreground">{ticket.title}</h1>
-              <Badge variant="outline" className="text-sm">{ticket.id}</Badge>
+      {/* Ticket Header Card */}
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex items-start justify-between">
+            <div className="space-y-2">
+              <div className="flex items-center gap-3">
+                <h1 className="text-3xl font-bold text-foreground">{ticket.title}</h1>
+                <Badge variant="outline" className="text-sm">{ticket.id}</Badge>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm">
+                <Edit className="h-4 w-4 mr-2" />
+                Edit Ticket
+              </Button>
+              <Select value={currentStatus} onValueChange={handleStatusChange}>
+                <SelectTrigger className="w-[150px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {workflowSteps.map((status) => (
+                    <SelectItem key={status} value={status}>{status}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem>
+                    <MessageSquare className="h-4 w-4 mr-2" />
+                    Add Comment
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <Link2 className="h-4 w-4 mr-2" />
+                    Copy Link
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>Duplicate</DropdownMenuItem>
+                  <Separator className="my-1" />
+                  <DropdownMenuItem className="text-destructive">
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm">
-              <Edit className="h-4 w-4 mr-2" />
-              Edit Ticket
-            </Button>
-            <Select value={currentStatus} onValueChange={handleStatusChange}>
-              <SelectTrigger className="w-[150px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {workflowSteps.map((status) => (
-                  <SelectItem key={status} value={status}>{status}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem>
-                  <MessageSquare className="h-4 w-4 mr-2" />
-                  Add Comment
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Link2 className="h-4 w-4 mr-2" />
-                  Copy Link
-                </DropdownMenuItem>
-                <DropdownMenuItem>Duplicate</DropdownMenuItem>
-                <Separator className="my-1" />
-                <DropdownMenuItem className="text-destructive">
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Main Content Area - Two Columns */}
       <div className="grid grid-cols-3 gap-6">
