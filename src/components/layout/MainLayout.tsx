@@ -11,10 +11,10 @@ interface MainLayoutProps {
 export const MainLayout = ({ children }: MainLayoutProps) => {
   return (
     <SidebarProvider>
-      <div className="flex flex-col min-h-screen w-full bg-background">
+      <div className="min-h-screen w-full bg-background flex flex-col">
         <div className="flex flex-1">
           <ManagerSidebar />
-          <div className="flex-1 flex flex-col">
+          <div className="flex-1 flex flex-col min-w-0">
             <TopNavbar />
             <main className="flex-1 overflow-auto">
               <div className="p-6">

@@ -31,7 +31,7 @@ export const ManagerSidebar = () => {
   return (
     <aside
       className={cn(
-        'h-full bg-sidebar border-r border-sidebar-border transition-all duration-300 ease-in-out flex flex-col flex-shrink-0',
+        'h-full min-h-0 bg-sidebar border-r border-sidebar-border transition-all duration-300 ease-in-out flex flex-col flex-shrink-0',
         collapsed ? 'w-20' : 'w-64'
       )}
     >
