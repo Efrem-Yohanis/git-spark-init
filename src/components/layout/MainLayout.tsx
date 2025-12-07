@@ -11,17 +11,19 @@ interface MainLayoutProps {
 export const MainLayout = ({ children }: MainLayoutProps) => {
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen w-full bg-background">
-        <ManagerSidebar />
-        <div className="flex-1 flex flex-col min-h-screen">
-          <TopNavbar />
-          <main className="flex-1 overflow-auto">
-            <div className="p-6">
-              {children}
-            </div>
-          </main>
-          <Footer />
+      <div className="flex flex-col min-h-screen w-full bg-background">
+        <div className="flex flex-1">
+          <ManagerSidebar />
+          <div className="flex-1 flex flex-col">
+            <TopNavbar />
+            <main className="flex-1 overflow-auto">
+              <div className="p-6">
+                {children}
+              </div>
+            </main>
+          </div>
         </div>
+        <Footer />
       </div>
     </SidebarProvider>
   );
