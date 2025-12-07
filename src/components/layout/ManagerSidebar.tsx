@@ -10,10 +10,14 @@ import {
   ChevronLeft,
   ChevronRight,
   Utensils,
+  ShoppingCart,
+  Megaphone,
 } from 'lucide-react';
 
 const navItems = [
   { path: '/', label: 'Dashboard', icon: LayoutDashboard },
+  { path: '/orders', label: 'Order Management', icon: ShoppingCart },
+  { path: '/advertisements', label: 'Advertising Management', icon: Megaphone },
   { path: '/waiters', label: 'Waiter Management', icon: Users },
   { path: '/chefs', label: 'Chef Management', icon: ChefHat },
   { path: '/customers', label: 'Customer Management', icon: UserCircle },
