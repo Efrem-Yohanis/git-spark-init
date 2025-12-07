@@ -37,37 +37,36 @@ const CustomerManagement = () => {
     <MainLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Customer Management</h1>
             <p className="text-muted-foreground mt-1">Customer relationship and behavior analytics</p>
           </div>
-          
-          <Button onClick={() => setDialogOpen(true)} className="gradient-primary text-primary-foreground">
-            <Plus className="h-4 w-4 mr-2" />
-            Create Customer
-          </Button>
-          
-          {/* View Toggle */}
-          <div className="flex items-center gap-2 bg-card border border-border rounded-lg p-1">
-            <button
-              onClick={() => setViewMode('grid')}
-              className={cn(
-                'p-2 rounded-md transition-all',
-                viewMode === 'grid' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
-              )}
-            >
-              <LayoutGrid className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => setViewMode('list')}
-              className={cn(
-                'p-2 rounded-md transition-all',
-                viewMode === 'list' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
-              )}
-            >
-              <List className="h-4 w-4" />
-            </button>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center border border-border rounded-lg p-1">
+              <button
+                onClick={() => setViewMode('grid')}
+                className={cn(
+                  'p-1.5 rounded transition-colors',
+                  viewMode === 'grid' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+                )}
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                className={cn(
+                  'p-1.5 rounded transition-colors',
+                  viewMode === 'list' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+                )}
+              >
+                <List className="h-4 w-4" />
+              </button>
+            </div>
+            <Button onClick={() => setDialogOpen(true)} className="gradient-primary text-primary-foreground gap-2">
+              <Plus className="h-4 w-4" />
+              Create Customer
+            </Button>
           </div>
         </div>
 
