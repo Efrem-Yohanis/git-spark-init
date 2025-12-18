@@ -4,9 +4,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { Users, Clock, Target, Gift, CreditCard, X, Wallet, Building, Upload, Moon } from "lucide-react";
+
+import { Users, Clock, Target, Gift, CreditCard, X, Wallet, Building, Upload, Moon, Rocket } from "lucide-react";
 import { BaseTableBuilder } from "@/components/base-preparation/BaseTableBuilder";
+import { ProgressTrackingTable, TableTrackingStatus } from "@/components/base-preparation/ProgressTrackingTable";
 import { useToast } from "@/hooks/use-toast";
 import {
   createActiveCustomerTable,
@@ -26,10 +27,11 @@ import {
 
 interface TableFieldConfig {
   name: string;
-  type: "text" | "file";
+  type: "text" | "file" | "date" | "number";
   label: string;
   required: boolean;
   placeholder?: string;
+  defaultValue?: string | number;
 }
 
 interface TableConfig {
@@ -96,6 +98,8 @@ const availableTables: { id: string; label: string; icon: any; borderColor: stri
     borderColor: "border-l-green-500",
     fields: [
       { name: "table_name", type: "text", label: "Table Name", required: true, placeholder: "e.g., active_customers" },
+      { name: "data_from", type: "date", label: "Data From", required: true, placeholder: "e.g., 2024-01-31" },
+      { name: "active_for", type: "number", label: "Active For (days)", required: true, placeholder: "e.g., 30", defaultValue: 30 },
     ]
   },
   { 
@@ -170,6 +174,8 @@ export default function BasePreparation() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [startTime, setStartTime] = useState<number>(0);
   const [tableStatuses, setTableStatuses] = useState<TableStatus[]>([]);
+  const [sourceTableTrackingStatuses, setSourceTableTrackingStatuses] = useState<TableTrackingStatus[]>([]);
+  const [sourceTablesCreated, setSourceTablesCreated] = useState(false);
   const fileInputRefs = useRef<Record<string, File | null>>({});
 
   const handleAddTable = () => {
@@ -180,7 +186,7 @@ export default function BasePreparation() {
 
     const initialValues: Record<string, any> = {};
     table.fields.forEach(field => {
-      initialValues[field.name] = "";
+      initialValues[field.name] = field.defaultValue !== undefined ? field.defaultValue : "";
     });
 
     const newTable: TableConfig = {
@@ -222,8 +228,8 @@ export default function BasePreparation() {
       case "active_customers":
         return createActiveCustomerTable({
           table_name: tableName,
-          data_from: new Date().toISOString().split('T')[0],
-          active_for: 30,
+          data_from: table.values.data_from || new Date().toISOString().split('T')[0],
+          active_for: parseInt(table.values.active_for) || 30,
         });
 
       case "ga_customers":
@@ -315,6 +321,17 @@ export default function BasePreparation() {
       return;
     }
 
+    // Initialize source table tracking statuses
+    const initialStatuses: TableTrackingStatus[] = selectedTables.map(t => ({
+      tableName: t.values.table_name || t.label.replace(/ /g, "_"),
+      columns: [],
+      status: "pending",
+      executionTime: null,
+      rowCount: null,
+      result: null,
+    }));
+    setSourceTableTrackingStatuses(initialStatuses);
+
     const tables = getAllTables();
     setTableStatuses(tables.map(t => ({ ...t, tableIndex: undefined })));
     setIsGenerating(true);
@@ -322,7 +339,7 @@ export default function BasePreparation() {
     
     toast({
       title: "Starting Generation",
-      description: `Generating ${tables.length} base tables...`,
+      description: `Generating ${tables.length} source tables...`,
     });
 
     for (let i = 0; i < selectedTables.length; i++) {
@@ -335,11 +352,24 @@ export default function BasePreparation() {
         return updated;
       });
 
+      setSourceTableTrackingStatuses(prev => {
+        const updated = [...prev];
+        updated[i] = { ...updated[i], status: "in_progress" };
+        return updated;
+      });
+
       const interval = setInterval(() => {
         setTableStatuses(prev => {
           const updated = [...prev];
           if (updated[i]?.status === "running") {
             updated[i] = { ...updated[i], time: Math.floor((Date.now() - startTableTime) / 1000) };
+          }
+          return updated;
+        });
+        setSourceTableTrackingStatuses(prev => {
+          const updated = [...prev];
+          if (updated[i]?.status === "in_progress") {
+            updated[i] = { ...updated[i], executionTime: Math.floor((Date.now() - startTableTime) / 1000) };
           }
           return updated;
         });
@@ -362,6 +392,19 @@ export default function BasePreparation() {
           };
           return updated;
         });
+
+        setSourceTableTrackingStatuses(prev => {
+          const updated = [...prev];
+          updated[i] = {
+            ...updated[i],
+            status: response.success ? "completed" : "failed",
+            executionTime: Math.round(elapsedTime * 100) / 100,
+            columns: response.columns || [],
+            rowCount: response.row_count || response.rows_inserted || response.rows_created || null,
+            result: response.success ? "Success" : "Failed",
+          };
+          return updated;
+        });
       } catch (error) {
         clearInterval(interval);
         console.error(`Error creating table ${table.values.table_name}:`, error);
@@ -375,27 +418,30 @@ export default function BasePreparation() {
           };
           return updated;
         });
+
+        setSourceTableTrackingStatuses(prev => {
+          const updated = [...prev];
+          updated[i] = {
+            ...updated[i],
+            status: "failed",
+            executionTime: Math.floor((Date.now() - startTableTime) / 1000),
+            result: "Failed",
+          };
+          return updated;
+        });
       }
     }
 
     setIsGenerating(false);
+    
+    // Check if all tables completed successfully
+    const allCompleted = sourceTableTrackingStatuses.every(s => s.status === "completed");
+    setSourceTablesCreated(true);
+    
     toast({
       title: "Generation Complete",
-      description: "All table creation tasks have finished.",
+      description: "All source table creation tasks have finished.",
     });
-  };
-
-  const getStatusBadge = (status: TableStatus["status"]) => {
-    switch (status) {
-      case "completed":
-        return <Badge className="bg-green-500 hover:bg-green-600">🟢 Completed</Badge>;
-      case "running":
-        return <Badge className="bg-yellow-500 hover:bg-yellow-600">🟡 Running</Badge>;
-      case "pending":
-        return <Badge variant="secondary">⚪ Pending</Badge>;
-      case "error":
-        return <Badge variant="destructive">🔴 Error</Badge>;
-    }
   };
 
   const renderField = (table: TableConfig, field: TableFieldConfig) => {
@@ -406,6 +452,26 @@ export default function BasePreparation() {
         return (
           <Input 
             type="text" 
+            value={value} 
+            onChange={(e) => updateTableField(table.instanceId, field.name, e.target.value)}
+            placeholder={field.placeholder}
+            disabled={isGenerating}
+          />
+        );
+      case "date":
+        return (
+          <Input 
+            type="date" 
+            value={value} 
+            onChange={(e) => updateTableField(table.instanceId, field.name, e.target.value)}
+            placeholder={field.placeholder}
+            disabled={isGenerating}
+          />
+        );
+      case "number":
+        return (
+          <Input 
+            type="number" 
             value={value} 
             onChange={(e) => updateTableField(table.instanceId, field.name, e.target.value)}
             placeholder={field.placeholder}
@@ -432,8 +498,6 @@ export default function BasePreparation() {
         return null;
     }
   };
-
-  const completedTables = tableStatuses.filter(t => t.status === "completed").length;
 
   return (
     <div className="w-full space-y-6">
@@ -516,88 +580,29 @@ export default function BasePreparation() {
           )}
 
           {selectedTables.length > 0 && (
-            <div className="flex justify-end">
-              <Button 
-                onClick={handleGenerate} 
-                disabled={isGenerating}
-                size="lg"
-              >
-                {isGenerating ? "Generating..." : "Generate Tables"}
-              </Button>
-            </div>
+            <Button 
+              onClick={handleGenerate} 
+              disabled={isGenerating || sourceTablesCreated}
+              size="lg"
+              className="w-full h-14 text-lg gap-2 bg-gradient-primary"
+            >
+              <Rocket className="h-5 w-5" />
+              {isGenerating ? "GENERATING SOURCE TABLES..." : sourceTablesCreated ? "SOURCE TABLES CREATED" : "CREATE ALL SOURCE TABLES"}
+            </Button>
           )}
 
-          {selectedTables.length > 0 && (
+          {/* Source Table Progress Tracking */}
+          <ProgressTrackingTable 
+            title="SOURCE TABLE CREATION TRACKING" 
+            statuses={sourceTableTrackingStatuses} 
+          />
+
+          {/* BASE TABLE BUILDER - Only visible after source tables are created */}
+          {sourceTablesCreated && (
             <BaseTableBuilder 
               availableTables={selectedTables.map(t => t.values.table_name || t.label.replace(/ /g, "_"))}
               postfix=""
             />
-          )}
-
-          {isGenerating && (
-            <Card className="border-2 shadow-elegant animate-fade-in">
-              <CardHeader className="border-b bg-gradient-to-r from-blue-500/5 to-transparent">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2">
-                    📊 PROGRESS TRACKING
-                  </CardTitle>
-                  <Badge variant="outline" className="text-base">
-                    {completedTables}/{tableStatuses.length} Tables
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="pt-6 space-y-6">
-                <div className="grid grid-cols-3 gap-4">
-                  <Card>
-                    <CardContent className="pt-4">
-                      <p className="text-sm text-muted-foreground">Overall Status</p>
-                      <p className="text-lg font-semibold mt-1">
-                        {completedTables === tableStatuses.length ? "🟢 Complete" : "🟡 Running"}
-                      </p>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardContent className="pt-4">
-                      <p className="text-sm text-muted-foreground">Elapsed Time</p>
-                      <p className="text-lg font-semibold mt-1">{Math.floor((Date.now() - startTime) / 1000)}s</p>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardContent className="pt-4">
-                      <p className="text-sm text-muted-foreground">Total Execution</p>
-                      <p className="text-lg font-semibold mt-1">
-                        {completedTables === tableStatuses.length 
-                          ? `${Math.floor((Date.now() - startTime) / 1000)}s` 
-                          : "-"}
-                      </p>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                <div className="space-y-3">
-                  {tableStatuses.map((table, idx) => (
-                    <Card key={idx} className="overflow-hidden">
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between gap-4">
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium truncate">{table.name}</p>
-                            <p className="text-xs text-muted-foreground mt-1">{table.parameters}</p>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            {getStatusBadge(table.status)}
-                            <p className="text-sm font-mono min-w-[60px] text-right">
-                              {table.status === "completed" && `${table.time}s`}
-                              {table.status === "running" && `${table.time}s...`}
-                              {table.status === "pending" && "-"}
-                            </p>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
           )}
         </div>
       </div>
