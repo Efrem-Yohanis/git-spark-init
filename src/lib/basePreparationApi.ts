@@ -52,16 +52,34 @@ export async function createVlrAttachedTable(data: VlrAttachedRequest): Promise<
   return response.json();
 }
 
-// Registered MPESA Table
+// Registered MPESA Table (GA MPESA Customers)
 export interface RegisteredMpesaRequest {
   table_name: string;
-  date_range?: { start: string; end: string };
-  before?: string;
-  after?: string;
+  data_from: string;
+  date_to: string;
 }
 
 export async function createRegisteredMpesaTable(data: RegisteredMpesaRequest): Promise<ApiResponse> {
-  const response = await fetch(`${BASE_URL}/create_registered_mpesa_table`, {
+  const response = await fetch(`${BASE_URL}/create_ga_mpesa_customers_table`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+  return response.json();
+}
+
+// GA GSM Table
+export interface GaGsmRequest {
+  table_name: string;
+  date_from: string;
+  date_to: string;
+}
+
+export async function createGaGsmTable(data: GaGsmRequest): Promise<ApiResponse> {
+  const response = await fetch(`${BASE_URL}/create_ga_gsm_table`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),

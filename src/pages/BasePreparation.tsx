@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-import { Users, Clock, Target, Gift, CreditCard, X, Wallet, Building, Upload, Moon, Rocket } from "lucide-react";
+import { Users, Clock, Target, Gift, CreditCard, X, Wallet, Building, Upload, Moon, Rocket, Radio } from "lucide-react";
 import { BaseTableBuilder } from "@/components/base-preparation/BaseTableBuilder";
 import { ProgressTrackingTable, TableTrackingStatus } from "@/components/base-preparation/ProgressTrackingTable";
 import { useToast } from "@/hooks/use-toast";
@@ -22,6 +22,7 @@ import {
   createCbeTopupTable,
   createFrearedFromTable,
   createDormantTable,
+  createGaGsmTable,
   ApiResponse,
 } from "@/lib/basePreparationApi";
 
@@ -108,7 +109,9 @@ const availableTables: { id: string; label: string; icon: any; borderColor: stri
     icon: Clock, 
     borderColor: "border-l-blue-500",
     fields: [
-      { name: "table_name", type: "text", label: "Table Name", required: true, placeholder: "e.g., vlr_customers" },
+      { name: "table_name", type: "text", label: "Table Name", required: true, placeholder: "e.g., VLR_ATTACHED" },
+      { name: "day_from", type: "date", label: "Day From", required: true, placeholder: "e.g., 2025-12-01" },
+      { name: "day_to", type: "date", label: "Day To", required: true, placeholder: "e.g., 2025-12-07" },
     ]
   },
   { 
@@ -117,7 +120,20 @@ const availableTables: { id: string; label: string; icon: any; borderColor: stri
     icon: Building, 
     borderColor: "border-l-purple-500",
     fields: [
-      { name: "table_name", type: "text", label: "Table Name", required: true, placeholder: "e.g., registered_mpesa" },
+      { name: "table_name", type: "text", label: "Table Name", required: true, placeholder: "e.g., GA_mpesa_customers" },
+      { name: "data_from", type: "date", label: "Data From", required: true, placeholder: "e.g., 2025-12-17" },
+      { name: "date_to", type: "date", label: "Date To", required: true, placeholder: "e.g., 2025-12-18" },
+    ]
+  },
+  { 
+    id: "ga_gsm", 
+    label: "GA GSM", 
+    icon: Radio, 
+    borderColor: "border-l-yellow-500",
+    fields: [
+      { name: "table_name", type: "text", label: "Table Name", required: true, placeholder: "e.g., msisdn_users" },
+      { name: "date_from", type: "date", label: "Date From", required: true, placeholder: "e.g., 2025-12-17" },
+      { name: "date_to", type: "date", label: "Date To", required: true, placeholder: "e.g., 2025-12-18" },
     ]
   },
   { 
@@ -242,19 +258,26 @@ export default function BasePreparation() {
           data_to: today.toISOString().split('T')[0],
         });
 
-      case "vlr_attached_customers": {
-        const todayDate = new Date();
-        const fromDate = new Date(todayDate);
-        fromDate.setDate(todayDate.getDate() - 30);
+      case "vlr_attached_customers":
         return createVlrAttachedTable({
           table_name: tableName,
-          day_from: fromDate.toISOString().split('T')[0],
-          day_to: todayDate.toISOString().split('T')[0],
+          day_from: table.values.day_from || new Date().toISOString().split('T')[0],
+          day_to: table.values.day_to || new Date().toISOString().split('T')[0],
         });
-      }
 
       case "registered_mpesa":
-        return createRegisteredMpesaTable({ table_name: tableName });
+        return createRegisteredMpesaTable({
+          table_name: tableName,
+          data_from: table.values.data_from || new Date().toISOString().split('T')[0],
+          date_to: table.values.date_to || new Date().toISOString().split('T')[0],
+        });
+
+      case "ga_gsm":
+        return createGaGsmTable({
+          table_name: tableName,
+          date_from: table.values.date_from || new Date().toISOString().split('T')[0],
+          date_to: table.values.date_to || new Date().toISOString().split('T')[0],
+        });
 
       case "targeted_customers":
         return createTargetedTable({
