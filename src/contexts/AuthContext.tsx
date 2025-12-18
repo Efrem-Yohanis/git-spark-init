@@ -1,61 +1,74 @@
-import { createContext, useContext, useState, ReactNode } from 'react';
-
-type UserRole = 'manager' | 'waiter' | 'chef' | 'kitchen_manager';
-
-interface User {
-  id: string;
-  name: string;
-  role: UserRole;
-}
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { User, login as loginApi, LoginCredentials } from '@/lib/authApi';
 
 interface AuthContextType {
   user: User | null;
-  login: (role: UserRole) => void;
-  logout: () => void;
   isAuthenticated: boolean;
+  isLoading: boolean;
+  login: (credentials: LoginCredentials) => Promise<void>;
+  logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within AuthProvider');
-  }
-  return context;
-};
+const SESSION_TOKEN_KEY = 'session_token';
+const USER_KEY = 'user';
 
-const roleNames: Record<UserRole, string> = {
-  manager: 'John Manager',
-  waiter: 'Sarah Waiter',
-  chef: 'Maria Chef',
-  kitchen_manager: 'Tom Kitchen',
-};
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(() => {
-    const saved = localStorage.getItem('restaurant_user');
-    return saved ? JSON.parse(saved) : { id: '1', name: 'John Manager', role: 'manager' };
-  });
+  useEffect(() => {
+    // Check for existing session on mount
+    const storedToken = localStorage.getItem(SESSION_TOKEN_KEY);
+    const storedUser = localStorage.getItem(USER_KEY);
+    
+    if (storedToken && storedUser) {
+      try {
+        setUser(JSON.parse(storedUser));
+      } catch {
+        localStorage.removeItem(SESSION_TOKEN_KEY);
+        localStorage.removeItem(USER_KEY);
+      }
+    }
+    setIsLoading(false);
+  }, []);
 
-  const login = (role: UserRole) => {
-    const newUser: User = {
-      id: '1',
-      name: roleNames[role],
-      role,
-    };
-    setUser(newUser);
-    localStorage.setItem('restaurant_user', JSON.stringify(newUser));
+  const login = async (credentials: LoginCredentials) => {
+    const response = await loginApi(credentials);
+    
+    if (response.success) {
+      localStorage.setItem(SESSION_TOKEN_KEY, response.session_token);
+      localStorage.setItem(USER_KEY, JSON.stringify(response.user));
+      setUser(response.user);
+    } else {
+      throw new Error(response.message || 'Login failed');
+    }
   };
 
   const logout = () => {
+    localStorage.removeItem(SESSION_TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
     setUser(null);
-    localStorage.removeItem('restaurant_user');
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{
+      user,
+      isAuthenticated: !!user,
+      isLoading,
+      login,
+      logout
+    }}>
       {children}
     </AuthContext.Provider>
   );
+};
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
 };
