@@ -36,8 +36,8 @@ export async function createActiveCustomerTable(data: ActiveCustomerRequest): Pr
 // VLR Attached Table
 export interface VlrAttachedRequest {
   table_name: string;
-  day_from: string;
-  day_to: string;
+  day_from: number;
+  day_to: number;
 }
 
 export async function createVlrAttachedTable(data: VlrAttachedRequest): Promise<ApiResponse> {
@@ -109,16 +109,17 @@ export async function createTargetedTable(data: TargetedTableRequest): Promise<A
   return response.json();
 }
 
-// Rewarded Customer Table
-export interface RewardedCustomerRequest {
+// Rewarded Table
+export interface RewardedTableRequest {
   table_name: string;
-  date_range?: { start: string; end: string };
-  before?: string;
-  after?: string;
+  short_code: string;
+  data_from: string;
+  data_to: string;
+  amount: number;
 }
 
-export async function createRewardedCustomerTable(data: RewardedCustomerRequest): Promise<ApiResponse> {
-  const response = await fetch(`${BASE_URL}/create_rewarded_customer_table`, {
+export async function createRewardedTable(data: RewardedTableRequest): Promise<ApiResponse> {
+  const response = await fetch(`${BASE_URL}/create_rewarded_table`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
@@ -270,6 +271,25 @@ export async function createDormantTable(data: DormantTableRequest): Promise<Api
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+  return response.json();
+}
+
+// Get Table Data
+export interface TableDataResponse {
+  success: boolean;
+  table_name: string;
+  columns: string[];
+  data: Record<string, any>[];
+  row_count: number;
+}
+
+export async function getTableData(tableName: string): Promise<TableDataResponse> {
+  const response = await fetch(`${BASE_URL}/get_table_data?table_name=${encodeURIComponent(tableName)}`, {
+    method: "GET",
   });
   if (!response.ok) {
     throw new Error(`HTTP error! status: ${response.status}`);

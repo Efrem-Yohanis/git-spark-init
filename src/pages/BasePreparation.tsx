@@ -14,7 +14,7 @@ import {
   createVlrAttachedTable,
   createRegisteredMpesaTable,
   createTargetedTable,
-  createRewardedCustomerTable,
+  createRewardedTable,
   createTableFromFile,
   createCustomerGaTable,
   createFraudTable,
@@ -110,8 +110,8 @@ const availableTables: { id: string; label: string; icon: any; borderColor: stri
     borderColor: "border-l-blue-500",
     fields: [
       { name: "table_name", type: "text", label: "Table Name", required: true, placeholder: "e.g., VLR_ATTACHED" },
-      { name: "day_from", type: "date", label: "Day From", required: true, placeholder: "e.g., 2025-12-01" },
-      { name: "day_to", type: "date", label: "Day To", required: true, placeholder: "e.g., 2025-12-07" },
+      { name: "day_from", type: "number", label: "Day From", required: true, placeholder: "e.g., 0", defaultValue: 0 },
+      { name: "day_to", type: "number", label: "Day To", required: true, placeholder: "e.g., 5", defaultValue: 5 },
     ]
   },
   { 
@@ -142,7 +142,9 @@ const availableTables: { id: string; label: string; icon: any; borderColor: stri
     icon: Target, 
     borderColor: "border-l-red-500",
     fields: [
-      { name: "table_name", type: "text", label: "Table Name", required: true, placeholder: "e.g., targeted_customers" },
+      { name: "table_name", type: "text", label: "Table Name", required: true, placeholder: "e.g., TARGETED_PIN_RESET" },
+      { name: "data_from", type: "date", label: "Data From", required: true, placeholder: "e.g., 2025-12-18" },
+      { name: "targeted_for_last", type: "number", label: "Targeted For Last (days)", required: true, placeholder: "e.g., 7", defaultValue: 7 },
     ]
   },
   { 
@@ -151,7 +153,11 @@ const availableTables: { id: string; label: string; icon: any; borderColor: stri
     icon: Gift, 
     borderColor: "border-l-pink-500",
     fields: [
-      { name: "table_name", type: "text", label: "Table Name", required: true, placeholder: "e.g., rewarded_customers" },
+      { name: "table_name", type: "text", label: "Table Name", required: true, placeholder: "e.g., REWARDED_TXN_20251218" },
+      { name: "short_code", type: "text", label: "Short Code", required: true, placeholder: "e.g., 9000033" },
+      { name: "data_from", type: "date", label: "Data From", required: true, placeholder: "e.g., 2025-12-01" },
+      { name: "data_to", type: "date", label: "Data To", required: true, placeholder: "e.g., 2025-12-18" },
+      { name: "amount", type: "number", label: "Amount", required: true, placeholder: "e.g., 100", defaultValue: 100 },
     ]
   },
   { 
@@ -261,8 +267,8 @@ export default function BasePreparation() {
       case "vlr_attached_customers":
         return createVlrAttachedTable({
           table_name: tableName,
-          day_from: table.values.day_from || new Date().toISOString().split('T')[0],
-          day_to: table.values.day_to || new Date().toISOString().split('T')[0],
+          day_from: parseInt(table.values.day_from) || 0,
+          day_to: parseInt(table.values.day_to) || 5,
         });
 
       case "registered_mpesa":
@@ -282,12 +288,18 @@ export default function BasePreparation() {
       case "targeted_customers":
         return createTargetedTable({
           table_name: tableName,
-          data_from: new Date().toISOString().split('T')[0],
-          targeted_for_last: 7,
+          data_from: table.values.data_from || new Date().toISOString().split('T')[0],
+          targeted_for_last: parseInt(table.values.targeted_for_last) || 7,
         });
 
       case "rewarded_customers":
-        return createRewardedCustomerTable({ table_name: tableName });
+        return createRewardedTable({
+          table_name: tableName,
+          short_code: table.values.short_code || "9000033",
+          data_from: table.values.data_from || new Date().toISOString().split('T')[0],
+          data_to: table.values.data_to || new Date().toISOString().split('T')[0],
+          amount: parseInt(table.values.amount) || 100,
+        });
 
       case "from_input": {
         const file = fileInputRefs.current[table.instanceId];
