@@ -93,8 +93,8 @@ export async function createGaGsmTable(data: GaGsmRequest): Promise<ApiResponse>
 // Targeted Table
 export interface TargetedTableRequest {
   table_name: string;
-  data_from: string;
-  targeted_for_last: number;
+  date_from: string;
+  for_last: string;
 }
 
 export async function createTargetedTable(data: TargetedTableRequest): Promise<ApiResponse> {
@@ -130,20 +130,16 @@ export async function createRewardedTable(data: RewardedTableRequest): Promise<A
   return response.json();
 }
 
-// Create Table From File
-export async function createTableFromFile(
+// Upload to Table (File Upload)
+export async function uploadToTable(
   tableName: string,
-  file: File,
-  maxRows?: number
+  file: File
 ): Promise<ApiResponse> {
   const formData = new FormData();
   formData.append("table_name", tableName);
   formData.append("file", file);
-  if (maxRows) {
-    formData.append("max_rows", maxRows.toString());
-  }
 
-  const response = await fetch(`${BASE_URL}/create_table_from_file`, {
+  const response = await fetch(`${BASE_URL}/upload_to_table`, {
     method: "POST",
     body: formData,
   });
@@ -160,7 +156,7 @@ export interface SqlTableRequest {
 }
 
 export async function createTableFromSql(data: SqlTableRequest): Promise<ApiResponse> {
-  const response = await fetch(`${BASE_URL}/create_table_from_sql`, {
+  const response = await fetch(`${BASE_URL}/create_table_sql`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
