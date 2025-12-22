@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-import { Users, Clock, Target, Gift, CreditCard, X, Wallet, Building, Upload, Moon, Rocket, Radio, RefreshCw, AlertTriangle } from "lucide-react";
+import { Users, Clock, Target, Gift, CreditCard, X, Wallet, Building, Upload, Moon, Rocket, Radio, RefreshCw, AlertTriangle, Scale } from "lucide-react";
 import { BaseTableBuilder } from "@/components/base-preparation/BaseTableBuilder";
 import { ProgressTrackingTable, TableTrackingStatus } from "@/components/base-preparation/ProgressTrackingTable";
 import { useToast } from "@/hooks/use-toast";
@@ -23,16 +23,21 @@ import {
   createFrearedFromTable,
   createDormantTable,
   createGaGsmTable,
+  createBalanceThresholdTable,
   ApiResponse,
 } from "@/lib/basePreparationApi";
 
 interface TableFieldConfig {
   name: string;
-  type: "text" | "file" | "date" | "number";
+  type: "text" | "file" | "date" | "number" | "select";
   label: string;
   required: boolean;
   placeholder?: string;
   defaultValue?: string | number;
+  options?: { value: string; label: string }[];
+  step?: number;
+  maxLength?: number;
+  pattern?: string;
 }
 
 interface TableConfig {
@@ -187,6 +192,30 @@ const availableTables: { id: string; label: string; icon: any; borderColor: stri
     borderColor: "border-l-gray-500",
     fields: [
       { name: "table_name", type: "text", label: "Table Name", required: true, placeholder: "e.g., dormant_list" },
+    ]
+  },
+  { 
+    id: "balance_threshold", 
+    label: "BALANCE THRESHOLD", 
+    icon: Scale, 
+    borderColor: "border-l-amber-500",
+    fields: [
+      { name: "table_name", type: "text", label: "Table Name", required: true, placeholder: "EX: LOW_BAL_DEC", maxLength: 30, pattern: "^[a-zA-Z0-9_]+$" },
+      { 
+        name: "comparison", 
+        type: "select", 
+        label: "Comparison", 
+        required: true, 
+        options: [
+          { value: "<=", label: "Less than or equal to (<=)" },
+          { value: ">=", label: "Greater than or equal to (>=)" },
+          { value: "<", label: "Less than (<)" },
+          { value: ">", label: "Greater than (>)" },
+          { value: "=", label: "Equal to (=)" },
+        ],
+        defaultValue: "<="
+      },
+      { name: "threshold", type: "number", label: "Threshold", required: true, placeholder: "e.g., 100", step: 0.01, defaultValue: 100 },
     ]
   },
 ];
@@ -348,6 +377,13 @@ export default function BasePreparation() {
       case "dormant_list":
         return createDormantTable({ table_name: tableName });
 
+      case "balance_threshold":
+        return createBalanceThresholdTable({
+          table_name: tableName,
+          threshold: parseFloat(table.values.threshold) || 100,
+          comparison: table.values.comparison || "<=",
+        });
+
       default:
         return {
           success: true,
@@ -501,9 +537,21 @@ export default function BasePreparation() {
           <Input 
             type="text" 
             value={value} 
-            onChange={(e) => updateTableField(table.instanceId, field.name, e.target.value)}
+            onChange={(e) => {
+              let newValue = e.target.value;
+              // Apply pattern validation for table names (alphanumeric and underscores only)
+              if (field.pattern) {
+                newValue = newValue.replace(/[^a-zA-Z0-9_]/g, '');
+              }
+              // Apply maxLength
+              if (field.maxLength && newValue.length > field.maxLength) {
+                newValue = newValue.slice(0, field.maxLength);
+              }
+              updateTableField(table.instanceId, field.name, newValue);
+            }}
             placeholder={field.placeholder}
             disabled={isGenerating}
+            maxLength={field.maxLength}
           />
         );
       case "date":
@@ -524,7 +572,27 @@ export default function BasePreparation() {
             onChange={(e) => updateTableField(table.instanceId, field.name, e.target.value)}
             placeholder={field.placeholder}
             disabled={isGenerating}
+            step={field.step}
           />
+        );
+      case "select":
+        return (
+          <Select 
+            value={value || field.defaultValue?.toString()} 
+            onValueChange={(val) => updateTableField(table.instanceId, field.name, val)}
+            disabled={isGenerating}
+          >
+            <SelectTrigger className="bg-background">
+              <SelectValue placeholder="Select an option..." />
+            </SelectTrigger>
+            <SelectContent className="bg-background z-50">
+              {field.options?.map(option => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         );
       case "file":
         return (

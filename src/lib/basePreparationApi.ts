@@ -262,6 +262,12 @@ export interface DormantTableRequest {
   table_name: string;
 }
 
+export interface BalanceThresholdRequest {
+  table_name: string;
+  threshold: number;
+  comparison: string;
+}
+
 export async function createDormantTable(data: DormantTableRequest): Promise<ApiResponse> {
   const response = await fetch(`${BASE_URL}/create_dormant_table`, {
     method: "POST",
@@ -286,6 +292,19 @@ export interface TableDataResponse {
 export async function getTableData(tableName: string): Promise<TableDataResponse> {
   const response = await fetch(`${BASE_URL}/get_table_data?table_name=${encodeURIComponent(tableName)}`, {
     method: "GET",
+  });
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+  return response.json();
+}
+
+// Balance Threshold Table
+export async function createBalanceThresholdTable(data: BalanceThresholdRequest): Promise<ApiResponse> {
+  const response = await fetch(`${BASE_URL}/api/create-balance-threshold`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
   });
   if (!response.ok) {
     throw new Error(`HTTP error! status: ${response.status}`);
