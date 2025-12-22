@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-import { Users, Clock, Target, Gift, CreditCard, X, Wallet, Building, Upload, Moon, Rocket, Radio } from "lucide-react";
+import { Users, Clock, Target, Gift, CreditCard, X, Wallet, Building, Upload, Moon, Rocket, Radio, RefreshCw, AlertTriangle } from "lucide-react";
 import { BaseTableBuilder } from "@/components/base-preparation/BaseTableBuilder";
 import { ProgressTrackingTable, TableTrackingStatus } from "@/components/base-preparation/ProgressTrackingTable";
 import { useToast } from "@/hooks/use-toast";
@@ -15,7 +15,7 @@ import {
   createRegisteredMpesaTable,
   createTargetedTable,
   createRewardedTable,
-  createTableFromFile,
+  uploadToTable,
   createCustomerGaTable,
   createFraudTable,
   createStaffListTable,
@@ -84,15 +84,6 @@ const availableTables: { id: string; label: string; icon: any; borderColor: stri
     ]
   },
   { 
-    id: "fraud_customer", 
-    label: "FRAUD CUSTOMER", 
-    icon: Users, 
-    borderColor: "border-l-orange-500",
-    fields: [
-      { name: "table_name", type: "text", label: "Table Name", required: true, placeholder: "e.g., fraud_list" },
-    ]
-  },
-  { 
     id: "active_customers", 
     label: "ACTIVE CUSTOMERS", 
     icon: Users, 
@@ -142,9 +133,9 @@ const availableTables: { id: string; label: string; icon: any; borderColor: stri
     icon: Target, 
     borderColor: "border-l-red-500",
     fields: [
-      { name: "table_name", type: "text", label: "Table Name", required: true, placeholder: "e.g., TARGETED_PIN_RESET" },
-      { name: "data_from", type: "date", label: "Data From", required: true, placeholder: "e.g., 2025-12-18" },
-      { name: "targeted_for_last", type: "number", label: "Targeted For Last (days)", required: true, placeholder: "e.g., 7", defaultValue: 7 },
+      { name: "table_name", type: "text", label: "Table Name", required: true, placeholder: "e.g., pin_reset_report_test" },
+      { name: "date_from", type: "date", label: "Date From", required: true, placeholder: "e.g., 2023-10-27" },
+      { name: "for_last", type: "text", label: "For Last (days)", required: true, placeholder: "e.g., 7", defaultValue: "7" },
     ]
   },
   { 
@@ -166,7 +157,18 @@ const availableTables: { id: string; label: string; icon: any; borderColor: stri
     icon: CreditCard, 
     borderColor: "border-l-indigo-500",
     fields: [
-      { name: "table_name", type: "text", label: "Table Name", required: true, placeholder: "e.g., cbe_topup_customers" },
+      { name: "table_name", type: "text", label: "Table Name", required: true, placeholder: "e.g., cbe_recharge_report" },
+      { name: "data_from", type: "date", label: "Data From", required: true, placeholder: "e.g., 2025-09-01" },
+      { name: "data_to", type: "date", label: "Data To", required: true, placeholder: "e.g., 2025-10-31" },
+    ]
+  },
+  { 
+    id: "fraud_customer", 
+    label: "FRAUD CUSTOMER", 
+    icon: AlertTriangle, 
+    borderColor: "border-l-orange-500",
+    fields: [
+      { name: "table_name", type: "text", label: "Table Name", required: true, placeholder: "e.g., fraud_detection_weekly" },
     ]
   },
   { 
@@ -199,6 +201,21 @@ export default function BasePreparation() {
   const [sourceTableTrackingStatuses, setSourceTableTrackingStatuses] = useState<TableTrackingStatus[]>([]);
   const [sourceTablesCreated, setSourceTablesCreated] = useState(false);
   const fileInputRefs = useRef<Record<string, File | null>>({});
+
+  const handleRefresh = () => {
+    setSelectedTableId("");
+    setSelectedTables([]);
+    setIsGenerating(false);
+    setStartTime(0);
+    setTableStatuses([]);
+    setSourceTableTrackingStatuses([]);
+    setSourceTablesCreated(false);
+    fileInputRefs.current = {};
+    toast({
+      title: "Page Reset",
+      description: "All selections and data have been cleared.",
+    });
+  };
 
   const handleAddTable = () => {
     if (!selectedTableId) return;
@@ -288,8 +305,8 @@ export default function BasePreparation() {
       case "targeted_customers":
         return createTargetedTable({
           table_name: tableName,
-          data_from: table.values.data_from || new Date().toISOString().split('T')[0],
-          targeted_for_last: parseInt(table.values.targeted_for_last) || 7,
+          date_from: table.values.date_from || new Date().toISOString().split('T')[0],
+          for_last: table.values.for_last || "7",
         });
 
       case "rewarded_customers":
@@ -306,7 +323,7 @@ export default function BasePreparation() {
         if (!file) {
           throw new Error("No file selected");
         }
-        return createTableFromFile(tableName, file);
+        return uploadToTable(tableName, file);
       }
 
       case "fraud_customer":
@@ -315,16 +332,12 @@ export default function BasePreparation() {
       case "staff_list":
         return createStaffListTable({ table_name: tableName });
 
-      case "cbe_topup": {
-        const todayCbe = new Date();
-        const monthAgo = new Date(todayCbe);
-        monthAgo.setDate(todayCbe.getDate() - 30);
+      case "cbe_topup":
         return createCbeTopupTable({
           table_name: tableName,
-          data_from: monthAgo.toISOString().split('T')[0],
-          data_to: todayCbe.toISOString().split('T')[0],
+          data_from: table.values.data_from || new Date().toISOString().split('T')[0],
+          data_to: table.values.data_to || new Date().toISOString().split('T')[0],
         });
-      }
 
       case "rewarded_from_account":
         return createFrearedFromTable({
@@ -537,9 +550,19 @@ export default function BasePreparation() {
   return (
     <div className="w-full space-y-6">
       <div className="w-full">
-        <h1 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-          Base Preparation Dashboard
-        </h1>
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+            Base Preparation Dashboard
+          </h1>
+          <Button 
+            variant="outline" 
+            onClick={handleRefresh}
+            className="gap-2"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Reset Page
+          </Button>
+        </div>
 
         <div className="space-y-6">
           <Card className="border-2 shadow-elegant">
