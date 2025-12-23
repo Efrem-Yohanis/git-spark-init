@@ -11,21 +11,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 
-const API_BASE_URL = "http://127.0.0.1:5000";
-
-interface CourtIssueResult {
-  ORD_ENDTIME: string;
-  ORDERID: string;
-  DS_CUSTOMER_MSISDN: string;
-  ORD_REASON_TYPE_NAME: string;
-  ORD_INITIATOR_MNEMONIC: string;
-  TX_CREDIT_PARTY_IDENTIFIER: string;
-  TX_DEBIT_PARTY_IDENTIFIER: string;
-  ORD_RECEIVER_MNEMONIC: string;
-  DS_ORD_TXN_TYPE_NAME: string;
-  AMOUNT: number;
-  ACCOUNT: string | null;
-}
+const API_BASE_URL = "http://localhost:5000";
 
 interface PaginationInfo {
   page: number;
@@ -39,7 +25,8 @@ export default function CourtIssue() {
   const [msisdn, setMsisdn] = useState("");
   const [fromDate, setFromDate] = useState<Date>();
   const [toDate, setToDate] = useState<Date>();
-  const [results, setResults] = useState<CourtIssueResult[]>([]);
+  const [results, setResults] = useState<Record<string, unknown>[]>([]);
+  const [columns, setColumns] = useState<string[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [pagination, setPagination] = useState<PaginationInfo | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -66,15 +53,15 @@ export default function CourtIssue() {
     setIsSearching(true);
     
     try {
-      const response = await fetch(`${API_BASE_URL}/court_issue`, {
+      const response = await fetch(`${API_BASE_URL}/api/mpesa/transactions`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
           msisdn: msisdn,
-          data_from: format(fromDate, "yyyy-MM-dd"),
-          data_to: format(toDate, "yyyy-MM-dd"),
+          date_from: format(fromDate, "yyyy-MM-dd"),
+          date_to: format(toDate, "yyyy-MM-dd"),
           page: page,
           page_size: 50,
         }),
@@ -83,7 +70,16 @@ export default function CourtIssue() {
       const data = await response.json();
 
       if (data.success) {
-        setResults(data.data || []);
+        const responseData = data.data || [];
+        setResults(responseData);
+        
+        // Extract columns dynamically from the first result
+        if (responseData.length > 0) {
+          setColumns(Object.keys(responseData[0]));
+        } else {
+          setColumns([]);
+        }
+        
         setPagination(data.pagination || null);
         setCurrentPage(page);
         setExecutionTime(data.execution_time_seconds || null);
@@ -94,10 +90,11 @@ export default function CourtIssue() {
       } else {
         toast({
           title: "Error",
-          description: data.error || "Failed to fetch court issue data",
+          description: data.error || "Failed to fetch transaction data",
           variant: "destructive",
         });
         setResults([]);
+        setColumns([]);
         setPagination(null);
       }
     } catch (error) {
@@ -107,6 +104,7 @@ export default function CourtIssue() {
         variant: "destructive",
       });
       setResults([]);
+      setColumns([]);
       setPagination(null);
     } finally {
       setIsSearching(false);
@@ -123,23 +121,17 @@ export default function CourtIssue() {
       return;
     }
 
-    const headers = [
-      "ORD_ENDTIME", "ORDERID", "DS_CUSTOMER_MSISDN", "ORD_REASON_TYPE_NAME",
-      "ORD_INITIATOR_MNEMONIC", "TX_CREDIT_PARTY_IDENTIFIER", "TX_DEBIT_PARTY_IDENTIFIER",
-      "ORD_RECEIVER_MNEMONIC", "DS_ORD_TXN_TYPE_NAME", "AMOUNT", "ACCOUNT"
-    ];
-    
     const csvContent = [
-      headers.join(","),
+      columns.join(","),
       ...results.map(row => 
-        headers.map(header => `"${row[header as keyof CourtIssueResult] ?? ""}"`).join(",")
+        columns.map(col => `"${row[col] ?? ""}"`).join(",")
       )
     ].join("\n");
 
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = `court_issue_${msisdn}_${format(new Date(), "yyyy-MM-dd")}.csv`;
+    link.download = `mpesa_transactions_${msisdn}_${format(new Date(), "yyyy-MM-dd")}.csv`;
     link.click();
     
     toast({
@@ -266,33 +258,21 @@ export default function CourtIssue() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>ORD_ENDTIME</TableHead>
-                      <TableHead>ORDERID</TableHead>
-                      <TableHead>DS_CUSTOMER_MSISDN</TableHead>
-                      <TableHead>ORD_REASON_TYPE_NAME</TableHead>
-                      <TableHead>ORD_INITIATOR_MNEMONIC</TableHead>
-                      <TableHead>TX_CREDIT_PARTY_IDENTIFIER</TableHead>
-                      <TableHead>TX_DEBIT_PARTY_IDENTIFIER</TableHead>
-                      <TableHead>ORD_RECEIVER_MNEMONIC</TableHead>
-                      <TableHead>DS_ORD_TXN_TYPE_NAME</TableHead>
-                      <TableHead>AMOUNT</TableHead>
-                      <TableHead>ACCOUNT</TableHead>
+                      {columns.map((col) => (
+                        <TableHead key={col}>{col}</TableHead>
+                      ))}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {results.map((row, index) => (
                       <TableRow key={index}>
-                        <TableCell className="whitespace-nowrap">{row.ORD_ENDTIME}</TableCell>
-                        <TableCell>{row.ORDERID}</TableCell>
-                        <TableCell>{row.DS_CUSTOMER_MSISDN}</TableCell>
-                        <TableCell>{row.ORD_REASON_TYPE_NAME}</TableCell>
-                        <TableCell className="whitespace-nowrap">{row.ORD_INITIATOR_MNEMONIC}</TableCell>
-                        <TableCell>{row.TX_CREDIT_PARTY_IDENTIFIER}</TableCell>
-                        <TableCell>{row.TX_DEBIT_PARTY_IDENTIFIER}</TableCell>
-                        <TableCell className="whitespace-nowrap">{row.ORD_RECEIVER_MNEMONIC}</TableCell>
-                        <TableCell>{row.DS_ORD_TXN_TYPE_NAME}</TableCell>
-                        <TableCell>{row.AMOUNT?.toLocaleString() ?? ""}</TableCell>
-                        <TableCell>{row.ACCOUNT ?? ""}</TableCell>
+                        {columns.map((col) => (
+                          <TableCell key={col} className="whitespace-nowrap">
+                            {typeof row[col] === 'number' 
+                              ? (row[col] as number).toLocaleString() 
+                              : String(row[col] ?? "")}
+                          </TableCell>
+                        ))}
                       </TableRow>
                     ))}
                   </TableBody>
