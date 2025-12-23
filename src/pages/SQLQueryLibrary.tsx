@@ -1,12 +1,12 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, FileCode2, Plus, Loader2 } from "lucide-react";
+import { Search, FileCode2, Plus, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { getSQLQueries, saveSQLQuery, type SQLQueryFromApi } from "@/lib/sqlLibraryApi";
@@ -32,7 +32,7 @@ export default function SQLQueryLibrary() {
   const [isSaving, setIsSaving] = useState(false);
   const [newQuery, setNewQuery] = useState({ title: "", description: "", sql: "" });
   const searchRef = useRef<HTMLDivElement>(null);
-  const itemsPerPage = 5;
+  const itemsPerPage = 10;
 
   // Debounce search
   useEffect(() => {
@@ -222,63 +222,97 @@ export default function SQLQueryLibrary() {
         )}
       </div>
 
-      {/* Query List */}
-      <div className="space-y-3">
+      {/* Query Table */}
+      <div className="rounded-lg border border-border bg-card overflow-hidden">
         {isLoading ? (
-          <Card className="p-8 text-center">
+          <div className="p-8 text-center">
             <Loader2 className="h-8 w-8 mx-auto animate-spin text-muted-foreground" />
             <p className="text-muted-foreground mt-2">Loading queries...</p>
-          </Card>
-        ) : paginatedQueries.length === 0 ? (
-          <Card className="p-8 text-center">
+          </div>
+        ) : queries.length === 0 ? (
+          <div className="p-8 text-center">
             <FileCode2 className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
             <p className="text-muted-foreground">No SQL queries found.</p>
-          </Card>
+          </div>
         ) : (
-          paginatedQueries.map((query) => (
-            <Card
-              key={query.id}
-              className="cursor-pointer hover:border-primary/50 transition-all duration-200 hover:shadow-md"
-              onClick={() => navigate(`/sql-query/${query.id}`)}
-            >
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-foreground truncate">{query.title}</h3>
-                    <p className="text-sm text-muted-foreground line-clamp-2 mt-1">{query.description}</p>
-                  </div>
-                  <span className="text-xs text-muted-foreground shrink-0">
-                    {query.date_created ? format(new Date(query.date_created), "MMM dd, yyyy") : ""}
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
-          ))
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/50 hover:bg-muted/50">
+                <TableHead className="font-semibold text-foreground">Title</TableHead>
+                <TableHead className="font-semibold text-foreground text-right w-[150px]">Last Updated</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {paginatedQueries.map((query, index) => (
+                <TableRow 
+                  key={query.id}
+                  onClick={() => navigate(`/sql-query/${query.id}`)}
+                  className={`cursor-pointer transition-colors hover:bg-accent/50 ${
+                    index % 2 === 0 ? 'bg-background' : 'bg-muted/20'
+                  }`}
+                >
+                  <TableCell className="font-medium text-foreground py-4">
+                    {query.title}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-right py-4">
+                    {query.date_created ? format(new Date(query.date_created), "MMM dd, yyyy") : "—"}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         )}
       </div>
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-            disabled={currentPage === 1}
-          >
-            Previous
-          </Button>
-          <span className="text-sm text-muted-foreground px-4">
-            Page {currentPage} of {totalPages}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-            disabled={currentPage === totalPages}
-          >
-            Next
-          </Button>
+        <div className="flex items-center justify-between px-2">
+          <p className="text-sm text-muted-foreground">
+            Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, queries.length)} of {queries.length} queries
+          </p>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+              let pageNum: number;
+              if (totalPages <= 5) {
+                pageNum = i + 1;
+              } else if (currentPage <= 3) {
+                pageNum = i + 1;
+              } else if (currentPage >= totalPages - 2) {
+                pageNum = totalPages - 4 + i;
+              } else {
+                pageNum = currentPage - 2 + i;
+              }
+              return (
+                <Button
+                  key={pageNum}
+                  variant={currentPage === pageNum ? "default" : "outline"}
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => setCurrentPage(pageNum)}
+                >
+                  {pageNum}
+                </Button>
+              );
+            })}
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       )}
     </div>
