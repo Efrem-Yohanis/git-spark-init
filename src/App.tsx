@@ -3,27 +3,28 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "@/contexts/AuthContext";
-import { ProtectedRoute } from "@/components/ProtectedRoute";
-import MainLayout from "./pages/MainLayout";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
+import { AppLayout } from "@/components/layout/AppLayout";
 import Dashboard from "./pages/Dashboard";
-import MetricDetail from "./pages/MetricDetail";
-import BasePreparation from "./pages/BasePreparation";
-import TableDetailPage from "./pages/base-preparation/TableDetailPage";
-import MySchemaPage from "./pages/tables/MySchemaPage";
-import SavedTablesPage from "./pages/tables/SavedTablesPage";
-import TableViewPage from "./pages/tables/TableViewPage";
-import CourtIssue from "./pages/ops-support/CourtIssue";
-import DormantList from "./pages/ops-support/DormantList";
-import Pinlock from "./pages/ops-support/Pinlock";
-import SQLQueryLibrary from "./pages/SQLQueryLibrary";
-import SQLQueryDetail from "./pages/SQLQueryDetail";
-import CCBECampaign from "./pages/campaigns/CCBECampaign";
-import GAPinResetCampaign from "./pages/campaigns/GAPinResetCampaign";
-import WonBackChurner from "./pages/campaigns/WonBackChurner";
-import TaskManager from "./pages/TaskManager";
+import Segmentation from "./pages/Segmentation";
+import SegmentDetail from "./pages/SegmentDetail";
+import SegmentCreation from "./pages/SegmentCreation";
+import Campaigns from "./pages/Campaigns";
+import CampaignCreate from "./pages/CampaignCreate";
+import CampaignDetail from "./pages/CampaignDetail";
+import CampaignApproval from "./pages/CampaignApproval";
+import AIInsights from "./pages/AIInsights";
+import Customer360 from "./pages/Customer360";
+import Reports from "./pages/Reports";
+import RewardAccountManagement from "./pages/RewardAccountManagement";
+import Configuration from "./pages/Configuration";
+import MpesaCoreDetail from "./pages/configuration/MpesaCoreDetail";
+import SmscDetail from "./pages/configuration/SmscDetail";
+import UssdGatewayDetail from "./pages/configuration/UssdGatewayDetail";
+import AppPushDetail from "./pages/configuration/AppPushDetail";
+import RewardAccountDetail from "./pages/configuration/RewardAccountDetail";
+import EmailServiceDetail from "./pages/configuration/EmailServiceDetail";
+import IvrConfigDetail from "./pages/configuration/IvrConfigDetail";
+import DatabaseDetail from "./pages/configuration/DatabaseDetail";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,37 +35,40 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <AuthProvider>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/" element={
-              <ProtectedRoute>
-                <MainLayout />
-              </ProtectedRoute>
-            }>
-              <Route index element={<Dashboard />} />
-              <Route path="metric/:metricId" element={<MetricDetail />} />
-              <Route path="base-preparation" element={<BasePreparation />} />
-              <Route path="base-preparation/table/:tableName" element={<TableDetailPage />} />
-              <Route path="tables/schema" element={<MySchemaPage />} />
-              <Route path="tables/saved" element={<SavedTablesPage />} />
-              <Route path="tables/schema/:tableName/view" element={<TableViewPage />} />
-              <Route path="tables/saved/:tableName/view" element={<TableViewPage />} />
-              <Route path="campaign/ccbe" element={<CCBECampaign />} />
-              <Route path="campaign/ga-pin-reset" element={<GAPinResetCampaign />} />
-              <Route path="campaign/won-back-churner" element={<WonBackChurner />} />
-              <Route path="ops-support/court-issue" element={<CourtIssue />} />
-              <Route path="ops-support/dormant-list" element={<DormantList />} />
-              <Route path="ops-support/pinlock" element={<Pinlock />} />
-              <Route path="sql-query-library" element={<SQLQueryLibrary />} />
-              <Route path="sql-query/:queryId" element={<SQLQueryDetail />} />
-              <Route path="task-manager" element={<TaskManager />} />
-            </Route>
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </AuthProvider>
+        <Routes>
+          <Route
+            path="/*"
+            element={
+              <AppLayout>
+                <Routes>
+                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/segmentation" element={<Segmentation />} />
+                  <Route path="/segmentation/create" element={<SegmentCreation />} />
+                  <Route path="/segmentation/:id" element={<SegmentDetail />} />
+                  <Route path="/campaigns" element={<Campaigns />} />
+                  <Route path="/campaigns/create" element={<CampaignCreate />} />
+                  <Route path="/campaigns/:id" element={<CampaignDetail />} />
+                  <Route path="/campaigns/:id/approval" element={<CampaignApproval />} />
+                  <Route path="/campaigns/approvals" element={<Campaigns />} />
+                  <Route path="/ai-insights" element={<AIInsights />} />
+                  <Route path="/customer-360" element={<Customer360 />} />
+                  <Route path="/reports" element={<Reports />} />
+                  <Route path="/reward-accounts" element={<RewardAccountManagement />} />
+                  <Route path="/configuration" element={<Configuration />} />
+                  <Route path="/configuration/mpesa-core" element={<MpesaCoreDetail />} />
+                  <Route path="/configuration/smsc" element={<SmscDetail />} />
+                  <Route path="/configuration/ussd-gateway" element={<UssdGatewayDetail />} />
+                  <Route path="/configuration/app-push" element={<AppPushDetail />} />
+                  <Route path="/configuration/reward-account" element={<RewardAccountDetail />} />
+                  <Route path="/configuration/email-service" element={<EmailServiceDetail />} />
+                  <Route path="/configuration/ivr-config" element={<IvrConfigDetail />} />
+                  <Route path="/configuration/database" element={<DatabaseDetail />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </AppLayout>
+            }
+          />
+        </Routes>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
