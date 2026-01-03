@@ -36,6 +36,10 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
+          {/* Standalone page - no sidebar/header */}
+          <Route path="/campaigns/:id/approval" element={<CampaignApproval />} />
+          
+          {/* Main app with layout */}
           <Route
             path="/*"
             element={
@@ -48,7 +52,6 @@ const App = () => (
                   <Route path="/campaigns" element={<Campaigns />} />
                   <Route path="/campaigns/create" element={<CampaignCreate />} />
                   <Route path="/campaigns/:id" element={<CampaignDetail />} />
-                  <Route path="/campaigns/:id/approval" element={<CampaignApproval />} />
                   <Route path="/campaigns/approvals" element={<Campaigns />} />
                   <Route path="/ai-insights" element={<AIInsights />} />
                   <Route path="/customer-360" element={<Customer360 />} />
