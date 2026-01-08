@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Save, Play, Calendar, HelpCircle, Sparkles, Check, X, Users } from "lucide-react";
+import { ArrowLeft, Save, Play, Calendar, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,15 +14,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
@@ -36,7 +27,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils";
+
 
 interface FilterState {
   lastActivity: string;
@@ -171,31 +162,14 @@ export default function SegmentCreation() {
           <CardTitle>Segment Details</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="segmentName">Segment Name *</Label>
-              <Input
-                id="segmentName"
-                placeholder="Enter segment name"
-                value={segmentName}
-                onChange={(e) => setSegmentName(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Segment Type *</Label>
-              <Select value={segmentType} onValueChange={setSegmentType}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="dormant">Dormant</SelectItem>
-                  <SelectItem value="new">New</SelectItem>
-                  <SelectItem value="value">Value-based</SelectItem>
-                  <SelectItem value="custom">Custom</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="segmentName">Segment Name *</Label>
+            <Input
+              id="segmentName"
+              placeholder="Enter segment name"
+              value={segmentName}
+              onChange={(e) => setSegmentName(e.target.value)}
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="description">Description (optional)</Label>
@@ -233,20 +207,8 @@ export default function SegmentCreation() {
 
       {/* Define Segment Filters */}
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader>
           <CardTitle>Define Segment Filters</CardTitle>
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">Rule Logic:</span>
-            <Select value={ruleLogic} onValueChange={(v) => setRuleLogic(v as "AND" | "OR")}>
-              <SelectTrigger className="w-20">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="AND">AND</SelectItem>
-                <SelectItem value="OR">OR</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Behavioral Filters */}
@@ -450,131 +412,6 @@ export default function SegmentCreation() {
         </CardContent>
       </Card>
 
-      {/* Segment Preview Panel */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="w-5 h-5" />
-            Segment Preview
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* KPIs */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            <div className="p-4 bg-muted border">
-              <p className="text-sm text-muted-foreground">Estimated Count</p>
-              <p className="text-2xl font-bold">{estimatedCount.toLocaleString()}</p>
-            </div>
-            <div className="p-4 bg-muted border">
-              <p className="text-sm text-muted-foreground">% of Total Base</p>
-              <p className="text-2xl font-bold">{percentOfBase}%</p>
-            </div>
-            <div className="p-4 bg-muted border">
-              <p className="text-sm text-muted-foreground">Active Rate</p>
-              <p className="text-2xl font-bold text-success">{activeRate}%</p>
-            </div>
-            <div className="p-4 bg-muted border">
-              <p className="text-sm text-muted-foreground">New Registrations</p>
-              <p className="text-2xl font-bold">{newRegistrations.toLocaleString()}</p>
-            </div>
-            <div className="p-4 bg-muted border">
-              <p className="text-sm text-muted-foreground">High Value %</p>
-              <p className="text-2xl font-bold text-info">{highValuePercent}%</p>
-            </div>
-          </div>
-
-          {/* MSISDN Preview Table */}
-          <div>
-            <h4 className="font-semibold mb-2 text-sm">MSISDN Preview (First 50 rows)</h4>
-            <div className="border overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/50">
-                    <TableHead>MSISDN</TableHead>
-                    <TableHead>Reg Date</TableHead>
-                    <TableHead>Last Activity</TableHead>
-                    <TableHead className="text-right">TXN Count</TableHead>
-                    <TableHead className="text-right">TXN Value (ETB)</TableHead>
-                    <TableHead>Value Tier</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {sampleMSISDNs.map((row, idx) => (
-                    <TableRow key={idx}>
-                      <TableCell className="font-mono">{row.msisdn}</TableCell>
-                      <TableCell>{row.regDate}</TableCell>
-                      <TableCell>{row.lastActivity}</TableCell>
-                      <TableCell className="text-right">{row.txnCount}</TableCell>
-                      <TableCell className="text-right">{row.txnValue.toLocaleString()}</TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="outline"
-                          className={cn(
-                            "font-medium",
-                            row.valueTier === "High" && "bg-success/10 text-success border-success/20",
-                            row.valueTier === "Medium" && "bg-info/10 text-info border-info/20",
-                            row.valueTier === "Low" && "bg-muted text-muted-foreground"
-                          )}
-                        >
-                          {row.valueTier}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* AI Recommendation Panel */}
-      {showAIPanel && (
-        <Card className="border-primary/30 bg-primary/5">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-primary" />
-              AI Recommendation
-            </CardTitle>
-            <Button variant="ghost" size="icon" onClick={() => setShowAIPanel(false)}>
-              <X className="w-4 h-4" />
-            </Button>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm">
-              Based on your segment filters, we suggest adding <strong>churn risk = medium</strong> to capture 
-              users who are likely to become inactive soon. This could increase campaign effectiveness by 15%.
-            </p>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-              <div>
-                <p className="text-muted-foreground">Expected Uplift</p>
-                <p className="font-bold text-primary">+15%</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Suggested Campaign</p>
-                <p className="font-bold">Win-back</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Best Channel</p>
-                <p className="font-bold">SMS + App Push</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Suggested Reward</p>
-                <p className="font-bold">50 ETB Cashback</p>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Button size="sm" className="gap-2">
-                <Check className="w-4 h-4" />
-                Apply Suggestion
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => setShowAIPanel(false)}>
-                Ignore
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Save / Activate Section */}
       <div className="flex items-center justify-end gap-3 pt-4 border-t">

@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { Plus, Search, Users, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -12,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { cn } from "@/lib/utils";
+
 
 const segments = [
   {
@@ -65,33 +64,6 @@ const segments = [
   },
 ];
 
-const getTypeColor = (type: string) => {
-  switch (type) {
-    case "Active":
-      return "bg-success/10 text-success border-success/20";
-    case "Dormant":
-      return "bg-warning/10 text-warning border-warning/20";
-    case "Value":
-      return "bg-info/10 text-info border-info/20";
-    case "New":
-      return "bg-purple-100 text-purple-700 border-purple-200";
-    case "Custom":
-      return "bg-muted text-muted-foreground border-muted";
-    default:
-      return "bg-muted text-muted-foreground";
-  }
-};
-
-const getStatusColor = (status: string) => {
-  switch (status) {
-    case "Active":
-      return "bg-success/10 text-success border-success/20";
-    case "Draft":
-      return "bg-muted text-muted-foreground border-muted";
-    default:
-      return "bg-muted text-muted-foreground";
-  }
-};
 
 export default function Segmentation() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -132,10 +104,8 @@ export default function Segmentation() {
           <TableHeader>
             <TableRow className="bg-muted/50">
               <TableHead className="font-semibold">Segment Name</TableHead>
-              <TableHead className="font-semibold">Type</TableHead>
               <TableHead className="font-semibold text-right">Customer Count</TableHead>
               <TableHead className="font-semibold">Last Refresh</TableHead>
-              <TableHead className="font-semibold">Status</TableHead>
               <TableHead className="font-semibold">Action</TableHead>
             </TableRow>
           </TableHeader>
@@ -150,21 +120,11 @@ export default function Segmentation() {
                     <p className="font-medium">{segment.name}</p>
                   </div>
                 </TableCell>
-                <TableCell>
-                  <Badge variant="outline" className={cn("font-medium", getTypeColor(segment.type))}>
-                    {segment.type}
-                  </Badge>
-                </TableCell>
                 <TableCell className="text-right font-medium">
                   {segment.customerCount.toLocaleString()}
                 </TableCell>
                 <TableCell className="text-muted-foreground">
                   {segment.lastRefresh}
-                </TableCell>
-                <TableCell>
-                  <Badge variant="outline" className={cn("font-medium", getStatusColor(segment.status))}>
-                    {segment.status}
-                  </Badge>
                 </TableCell>
                 <TableCell>
                   <Button
