@@ -4,16 +4,12 @@ import {
   ArrowLeft, 
   RefreshCw, 
   Edit, 
-  Megaphone, 
-  Download, 
-  Share2, 
-  Calendar,
-  FileSpreadsheet
+  Megaphone,
+  Calendar
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SegmentKPICards } from "@/components/segment/SegmentKPICards";
-import { SegmentFilters } from "@/components/segment/SegmentFilters";
 import { CustomerListTable } from "@/components/segment/CustomerListTable";
 import { CreateCampaignModal } from "@/components/segment/CreateCampaignModal";
 import { ExportModal } from "@/components/segment/ExportModal";
@@ -62,10 +58,10 @@ export default function SegmentDetail() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showCampaignModal, setShowCampaignModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
-  const [filters, setFilters] = useState({
+  const filters = {
     activityDays: "30",
     valueTier: "all",
-  });
+  };
 
   const handleRefresh = () => {
     setIsRefreshing(true);
@@ -136,31 +132,12 @@ export default function SegmentDetail() {
       {/* KPI Summary Cards */}
       <SegmentKPICards kpis={segmentData.kpis} />
 
-      {/* Filters Panel */}
-      <SegmentFilters filters={filters} onFiltersChange={setFilters} />
-
       {/* Customer List Table */}
       <CustomerListTable 
         filters={filters} 
         onExport={() => setShowExportModal(true)} 
       />
 
-      {/* Footer Actions */}
-      <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t">
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" className="gap-2">
-            <Share2 className="w-4 h-4" />
-            Share Preview
-          </Button>
-          <Button variant="outline" size="sm" className="gap-2">
-            <Calendar className="w-4 h-4" />
-            Schedule Export
-          </Button>
-        </div>
-        <p className="text-sm text-muted-foreground">
-          Showing filtered results • Export will include all matching customers
-        </p>
-      </div>
 
       {/* Modals */}
       <CreateCampaignModal 
