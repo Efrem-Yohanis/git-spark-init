@@ -4,14 +4,13 @@ import {
   ArrowLeft, 
   RefreshCw, 
   Edit, 
-  Megaphone,
   Calendar
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SegmentKPICards } from "@/components/segment/SegmentKPICards";
 import { CustomerListTable } from "@/components/segment/CustomerListTable";
-import { CreateCampaignModal } from "@/components/segment/CreateCampaignModal";
+
 import { ExportModal } from "@/components/segment/ExportModal";
 import { cn } from "@/lib/utils";
 
@@ -56,7 +55,6 @@ export default function SegmentDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [showCampaignModal, setShowCampaignModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const filters = {
     activityDays: "30",
@@ -101,7 +99,7 @@ export default function SegmentDetail() {
                 {segmentData.customerCount.toLocaleString()} customers
               </span>
             </div>
-            <p className="text-muted-foreground">{segmentData.description}</p>
+            
           </div>
 
           <div className="flex flex-wrap gap-2">
@@ -114,16 +112,13 @@ export default function SegmentDetail() {
               <RefreshCw className={cn("w-4 h-4", isRefreshing && "animate-spin")} />
               Refresh Segment
             </Button>
-            <Button variant="outline" className="gap-2">
+            <Button 
+              variant="outline" 
+              className="gap-2"
+              onClick={() => navigate(`/segmentation/${id}/edit`)}
+            >
               <Edit className="w-4 h-4" />
               Edit Segment
-            </Button>
-            <Button 
-              className="gap-2"
-              onClick={() => setShowCampaignModal(true)}
-            >
-              <Megaphone className="w-4 h-4" />
-              Create Campaign
             </Button>
           </div>
         </div>
@@ -140,12 +135,6 @@ export default function SegmentDetail() {
 
 
       {/* Modals */}
-      <CreateCampaignModal 
-        open={showCampaignModal} 
-        onOpenChange={setShowCampaignModal}
-        segment={segmentData}
-        filters={filters}
-      />
       <ExportModal
         open={showExportModal}
         onOpenChange={setShowExportModal}

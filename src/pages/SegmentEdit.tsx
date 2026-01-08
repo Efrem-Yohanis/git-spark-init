@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Play, HelpCircle } from "lucide-react";
+import { useNavigate, useParams } from "react-router-dom";
+import { ArrowLeft, Save, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,7 +28,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-
 interface FilterState {
   lastActivity: string;
   transactionCountMin: string;
@@ -46,49 +45,41 @@ interface FilterState {
   valueTier: string;
 }
 
-const initialFilters: FilterState = {
-  lastActivity: "",
-  transactionCountMin: "",
-  transactionCountMax: "",
-  transactionValueMin: "",
-  transactionValueMax: "",
-  rewardReceived: "",
-  churnRisk: "",
-  region: "",
-  city: "",
-  gender: "",
-  ageGroup: "",
-  kycLevel: "",
-  deviceType: "",
-  valueTier: "",
+// Mock existing segment data
+const existingSegment = {
+  id: 1,
+  name: "High Value Active Users",
+  description: "Users with high transaction values and recent activity",
+  autoRefresh: true,
+  refreshInterval: "daily",
+  filters: {
+    lastActivity: "30",
+    transactionCountMin: "10",
+    transactionCountMax: "",
+    transactionValueMin: "5000",
+    transactionValueMax: "",
+    rewardReceived: "",
+    churnRisk: "",
+    region: "",
+    city: "",
+    gender: "",
+    ageGroup: "",
+    kycLevel: "",
+    deviceType: "",
+    valueTier: "high",
+  }
 };
 
-const sampleMSISDNs = [
-  { msisdn: "2519****1234", regDate: "2023-06-15", lastActivity: "2024-01-14", txnCount: 45, txnValue: 12500, valueTier: "High" },
-  { msisdn: "2519****5678", regDate: "2023-08-22", lastActivity: "2024-01-13", txnCount: 32, txnValue: 8900, valueTier: "Medium" },
-  { msisdn: "2519****9012", regDate: "2023-03-10", lastActivity: "2024-01-15", txnCount: 67, txnValue: 25600, valueTier: "High" },
-  { msisdn: "2519****3456", regDate: "2023-11-05", lastActivity: "2024-01-12", txnCount: 12, txnValue: 3200, valueTier: "Low" },
-  { msisdn: "2519****7890", regDate: "2023-07-18", lastActivity: "2024-01-14", txnCount: 28, txnValue: 7500, valueTier: "Medium" },
-];
-
-export default function SegmentCreation() {
+export default function SegmentEdit() {
   const navigate = useNavigate();
-  const [segmentName, setSegmentName] = useState("");
-  const [segmentType, setSegmentType] = useState("");
-  const [description, setDescription] = useState("");
-  const [autoRefresh, setAutoRefresh] = useState(false);
-  const [refreshInterval, setRefreshInterval] = useState("daily");
-  const [filters, setFilters] = useState<FilterState>(initialFilters);
+  const { id } = useParams();
+  const [segmentName, setSegmentName] = useState(existingSegment.name);
+  const [description, setDescription] = useState(existingSegment.description);
+  const [autoRefresh, setAutoRefresh] = useState(existingSegment.autoRefresh);
+  const [refreshInterval, setRefreshInterval] = useState(existingSegment.refreshInterval);
+  const [filters, setFilters] = useState<FilterState>(existingSegment.filters);
   const [ruleLogic, setRuleLogic] = useState<"AND" | "OR">("AND");
   const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [showAIPanel, setShowAIPanel] = useState(true);
-
-  // Mock preview data based on filters
-  const estimatedCount = 125000;
-  const percentOfBase = 8.5;
-  const activeRate = 78;
-  const newRegistrations = 12500;
-  const highValuePercent = 35;
 
   const updateFilter = (key: keyof FilterState, value: string) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
@@ -108,19 +99,14 @@ export default function SegmentCreation() {
     return rules.length > 0 ? rules.join(` ${ruleLogic} `) : "No filters applied";
   };
 
-  const handleSaveDraft = () => {
-    console.log("Saving draft...");
-    navigate("/segmentation");
-  };
-
-  const handleSaveAndActivate = () => {
+  const handleSave = () => {
     setShowConfirmModal(true);
   };
 
-  const confirmActivation = () => {
-    console.log("Activating segment...");
+  const confirmSave = () => {
+    console.log("Saving segment changes...");
     setShowConfirmModal(false);
-    navigate("/segmentation");
+    navigate(`/segmentation/${id}`);
   };
 
   return (
@@ -128,12 +114,12 @@ export default function SegmentCreation() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/segmentation")}>
+          <Button variant="ghost" size="icon" onClick={() => navigate(`/segmentation/${id}`)}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div>
-            <h1 className="text-2xl font-bold">Create Segment</h1>
-            <p className="text-muted-foreground">Define segment rules and preview customers</p>
+            <h1 className="text-2xl font-bold">Edit Segment</h1>
+            <p className="text-muted-foreground">Update segment rules and settings</p>
           </div>
         </div>
         <Tooltip>
@@ -148,7 +134,7 @@ export default function SegmentCreation() {
         </Tooltip>
       </div>
 
-      {/* Segment Name & Type */}
+      {/* Segment Name & Details */}
       <Card>
         <CardHeader>
           <CardTitle>Segment Details</CardTitle>
@@ -404,12 +390,11 @@ export default function SegmentCreation() {
         </CardContent>
       </Card>
 
-
-      {/* Save / Activate Section */}
+      {/* Save Section */}
       <div className="flex items-center justify-end gap-3 pt-4 border-t">
-        <Button onClick={handleSaveAndActivate} className="gap-2">
-          <Play className="w-4 h-4" />
-          Save & Activate
+        <Button onClick={handleSave} className="gap-2">
+          <Save className="w-4 h-4" />
+          Save Changes
         </Button>
       </div>
 
@@ -417,9 +402,9 @@ export default function SegmentCreation() {
       <Dialog open={showConfirmModal} onOpenChange={setShowConfirmModal}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Confirm Segment Activation</DialogTitle>
+            <DialogTitle>Confirm Changes</DialogTitle>
             <DialogDescription>
-              Please review the segment details before activation.
+              Please review the segment details before saving.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -427,14 +412,6 @@ export default function SegmentCreation() {
               <div>
                 <p className="text-muted-foreground">Segment Name</p>
                 <p className="font-medium">{segmentName || "Unnamed Segment"}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Type</p>
-                <p className="font-medium capitalize">{segmentType || "Not specified"}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Total Customers</p>
-                <p className="font-medium">{estimatedCount.toLocaleString()}</p>
               </div>
               <div>
                 <p className="text-muted-foreground">Auto Refresh</p>
@@ -445,19 +422,13 @@ export default function SegmentCreation() {
               <p className="text-sm font-medium mb-1">Applied Rules:</p>
               <p className="text-sm text-muted-foreground">{buildRuleSummary()}</p>
             </div>
-            {estimatedCount > 1000000 && (
-              <div className="p-3 bg-warning/10 border border-warning/30 text-warning">
-                <p className="text-sm font-medium">⚠️ Large Segment Warning</p>
-                <p className="text-sm">This segment contains more than 1 million users.</p>
-              </div>
-            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowConfirmModal(false)}>
               Cancel
             </Button>
-            <Button onClick={confirmActivation}>
-              Confirm & Activate
+            <Button onClick={confirmSave}>
+              Confirm & Save
             </Button>
           </DialogFooter>
         </DialogContent>

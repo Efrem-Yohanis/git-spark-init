@@ -8,6 +8,7 @@ import Dashboard from "./pages/Dashboard";
 import Segmentation from "./pages/Segmentation";
 import SegmentDetail from "./pages/SegmentDetail";
 import SegmentCreation from "./pages/SegmentCreation";
+import SegmentEdit from "./pages/SegmentEdit";
 import Campaigns from "./pages/Campaigns";
 import CampaignCreate from "./pages/CampaignCreate";
 import CampaignDetail from "./pages/CampaignDetail";
@@ -49,6 +50,7 @@ const App = () => (
                   <Route path="/segmentation" element={<Segmentation />} />
                   <Route path="/segmentation/create" element={<SegmentCreation />} />
                   <Route path="/segmentation/:id" element={<SegmentDetail />} />
+                  <Route path="/segmentation/:id/edit" element={<SegmentEdit />} />
                   <Route path="/campaigns" element={<Campaigns />} />
                   <Route path="/campaigns/create" element={<CampaignCreate />} />
                   <Route path="/campaigns/:id" element={<CampaignDetail />} />
