@@ -4,6 +4,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
+import Login from "./pages/Login";
+import ForgotPassword from "./pages/ForgotPassword";
 import Dashboard from "./pages/Dashboard";
 import Segmentation from "./pages/Segmentation";
 import SegmentDetail from "./pages/SegmentDetail";
@@ -13,6 +15,7 @@ import Campaigns from "./pages/Campaigns";
 import CampaignCreate from "./pages/CampaignCreate";
 import CampaignDetail from "./pages/CampaignDetail";
 import CampaignApproval from "./pages/CampaignApproval";
+import CampaignListForApprover from "./pages/CampaignListForApprover";
 import AIInsights from "./pages/AIInsights";
 import Customer360 from "./pages/Customer360";
 import Reports from "./pages/Reports";
@@ -37,8 +40,11 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          {/* Standalone page - no sidebar/header */}
+          {/* Standalone pages - no sidebar/header */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/campaigns/:id/approval" element={<CampaignApproval />} />
+          <Route path="/list_comain_to_me" element={<CampaignListForApprover />} />
           
           {/* Main app with layout */}
           <Route

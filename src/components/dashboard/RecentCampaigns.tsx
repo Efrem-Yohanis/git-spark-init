@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 const campaigns = [
   {
     id: 1,
-    name: "Festive Season Rewards",
+    name: "Meskel Season Rewards",
     type: "Incentive",
     status: "Running",
     targeted: 45000,
@@ -16,7 +16,7 @@ const campaigns = [
   },
   {
     id: 2,
-    name: "Win-back December",
+    name: "Timket Win-back",
     type: "Win-back",
     status: "Running",
     targeted: 28000,
@@ -25,7 +25,7 @@ const campaigns = [
   },
   {
     id: 3,
-    name: "Transaction Alert",
+    name: "Genna Alert",
     type: "Info",
     status: "Completed",
     targeted: 150000,

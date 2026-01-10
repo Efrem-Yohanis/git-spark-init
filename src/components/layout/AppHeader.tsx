@@ -1,6 +1,5 @@
-import { Bell, Search, Calendar, User } from "lucide-react";
+import { Bell, Calendar, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,16 +20,8 @@ export function AppHeader() {
 
   return (
     <header className="h-16 border-b bg-card flex items-center justify-between px-6 sticky top-0 z-10">
-      {/* Search */}
-      <div className="flex items-center gap-4 flex-1 max-w-md">
-        <div className="relative w-full">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Search customers, campaigns, segments..."
-            className="pl-10 bg-secondary border-0"
-          />
-        </div>
-      </div>
+      {/* Left spacer */}
+      <div className="flex-1" />
 
       {/* Right section */}
       <div className="flex items-center gap-4">

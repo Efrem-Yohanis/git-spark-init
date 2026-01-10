@@ -1,4 +1,4 @@
-import { AlertTriangle, Users, MessageSquare, Gift, Calendar, CheckCircle } from "lucide-react";
+import { AlertTriangle, Users, MessageSquare, Gift, Calendar, CheckCircle, Smartphone, Bell, Mail, RotateCcw, CheckCircle2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { CampaignFormData } from "@/pages/CampaignCreate";
 
@@ -31,13 +31,23 @@ export function ReviewSubmitStep({ formData }: ReviewSubmitStepProps) {
     warnings.push("High cost: Estimated reward cost exceeds 1,000,000 ETB");
   }
 
-  // Get configured languages for SMS/USSD/App
-  const getConfiguredLanguages = (channel: "sms" | "ussd" | "app") => {
+  // Get configured languages with their messages for SMS/USSD/App
+  const getConfiguredLanguagesWithMessages = (channel: "sms" | "ussd" | "app") => {
     const messages = formData.channelMessages[channel];
     if (!messages) return [];
     return Object.entries(messages)
       .filter(([_, msg]) => msg && msg.trim().length > 0)
-      .map(([lang]) => languageNames[lang] || lang);
+      .map(([lang, msg]) => ({
+        language: languageNames[lang] || lang,
+        message: msg,
+      }));
+  };
+
+  const channelIcons = {
+    sms: MessageSquare,
+    ussd: Smartphone,
+    app: Bell,
+    email: Mail,
   };
 
   return (
@@ -47,7 +57,7 @@ export function ReviewSubmitStep({ formData }: ReviewSubmitStepProps) {
         <p className="text-sm text-muted-foreground">Verify all details before submitting for approval</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="space-y-6">
         {/* Campaign Summary */}
         <div className="border p-4 space-y-4">
           <div className="flex items-center gap-2 pb-2 border-b">
@@ -112,59 +122,203 @@ export function ReviewSubmitStep({ formData }: ReviewSubmitStepProps) {
           </div>
         </div>
 
-        {/* Channel Summary */}
+        {/* Channel Configuration */}
         <div className="border p-4 space-y-4">
           <div className="flex items-center gap-2 pb-2 border-b">
             <MessageSquare className="w-4 h-4 text-primary" />
-            <h3 className="font-semibold">Channel Summary</h3>
+            <h3 className="font-semibold">Channel Configuration</h3>
           </div>
-          <div className="space-y-3">
-            <div className="flex flex-wrap gap-2">
-              {selectedChannels.map((channel) => (
-                <Badge key={channel} variant="secondary">{channel}</Badge>
-              ))}
-            </div>
-            
+          
+          <div className="space-y-6">
+            {/* SMS Channel */}
             {formData.channels.sms && (
-              <div className="p-3 bg-muted text-sm">
-                <p className="text-xs text-muted-foreground mb-1">
-                  SMS ({getConfiguredLanguages("sms").join(", ") || "No messages configured"})
-                </p>
-                <p className="line-clamp-2">
-                  {formData.channelMessages.sms?.en || formData.channelMessages.sms?.am || "Message preview..."}
-                </p>
+              <div className="border p-4 space-y-4">
+                <div className="flex items-center gap-3">
+                  <MessageSquare className="w-5 h-5 text-primary" />
+                  <span className="font-semibold">Channel: SMS</span>
+                  <Badge variant="secondary" className="bg-green-100 text-green-700">Enabled</Badge>
+                </div>
+                
+                <div className="space-y-3">
+                  <p className="text-sm font-medium text-muted-foreground">Languages:</p>
+                  <div className="space-y-3 pl-4">
+                    {getConfiguredLanguagesWithMessages("sms").map((item) => (
+                      <div key={item.language} className="space-y-1">
+                        <p className="text-sm font-semibold">{item.language}</p>
+                        <p className="text-sm bg-muted p-2 border-l-2 border-primary">{item.message}</p>
+                      </div>
+                    ))}
+                    {getConfiguredLanguagesWithMessages("sms").length === 0 && (
+                      <p className="text-sm text-muted-foreground italic">No messages configured</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-4 text-sm pt-2 border-t">
+                  <div>
+                    <p className="text-muted-foreground">Cap per Channel</p>
+                    <p className="font-medium">{formData.channelSettings.sms.cap?.toLocaleString() || "Not set"}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Retry on Failure</p>
+                    <p className="font-medium flex items-center gap-1">
+                      {formData.channelSettings.sms.retryOnFailure ? (
+                        <><CheckCircle2 className="w-4 h-4 text-green-600" /> Yes</>
+                      ) : (
+                        "No"
+                      )}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Channel Priority</p>
+                    <p className="font-medium">{formData.channelSettings.sms.priority || "Not set"}</p>
+                  </div>
+                </div>
               </div>
             )}
-            
+
+            {/* USSD Channel */}
             {formData.channels.ussd && (
-              <div className="p-3 bg-muted text-sm">
-                <p className="text-xs text-muted-foreground mb-1">
-                  USSD ({getConfiguredLanguages("ussd").join(", ") || "No messages configured"})
-                </p>
-                <p className="line-clamp-2">
-                  {formData.channelMessages.ussd?.en || formData.channelMessages.ussd?.am || "Message preview..."}
-                </p>
+              <div className="border p-4 space-y-4">
+                <div className="flex items-center gap-3">
+                  <Smartphone className="w-5 h-5 text-primary" />
+                  <span className="font-semibold">Channel: USSD</span>
+                  <Badge variant="secondary" className="bg-green-100 text-green-700">Enabled</Badge>
+                </div>
+                
+                <div className="space-y-3">
+                  <p className="text-sm font-medium text-muted-foreground">Languages:</p>
+                  <div className="space-y-3 pl-4">
+                    {getConfiguredLanguagesWithMessages("ussd").map((item) => (
+                      <div key={item.language} className="space-y-1">
+                        <p className="text-sm font-semibold">{item.language}</p>
+                        <p className="text-sm bg-muted p-2 border-l-2 border-primary">{item.message}</p>
+                      </div>
+                    ))}
+                    {getConfiguredLanguagesWithMessages("ussd").length === 0 && (
+                      <p className="text-sm text-muted-foreground italic">No messages configured</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-4 text-sm pt-2 border-t">
+                  <div>
+                    <p className="text-muted-foreground">Cap per Channel</p>
+                    <p className="font-medium">{formData.channelSettings.ussd.cap?.toLocaleString() || "Not set"}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Retry on Failure</p>
+                    <p className="font-medium flex items-center gap-1">
+                      {formData.channelSettings.ussd.retryOnFailure ? (
+                        <><CheckCircle2 className="w-4 h-4 text-green-600" /> Yes</>
+                      ) : (
+                        "No"
+                      )}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Channel Priority</p>
+                    <p className="font-medium">{formData.channelSettings.ussd.priority || "Not set"}</p>
+                  </div>
+                </div>
               </div>
             )}
-            
+
+            {/* App Push Channel */}
             {formData.channels.app && (
-              <div className="p-3 bg-muted text-sm">
-                <p className="text-xs text-muted-foreground mb-1">
-                  App Push ({getConfiguredLanguages("app").join(", ") || "No messages configured"})
-                </p>
-                <p className="line-clamp-2">
-                  {formData.channelMessages.app?.en || formData.channelMessages.app?.am || "Message preview..."}
-                </p>
+              <div className="border p-4 space-y-4">
+                <div className="flex items-center gap-3">
+                  <Bell className="w-5 h-5 text-primary" />
+                  <span className="font-semibold">Channel: App Push</span>
+                  <Badge variant="secondary" className="bg-green-100 text-green-700">Enabled</Badge>
+                </div>
+                
+                <div className="space-y-3">
+                  <p className="text-sm font-medium text-muted-foreground">Languages:</p>
+                  <div className="space-y-3 pl-4">
+                    {getConfiguredLanguagesWithMessages("app").map((item) => (
+                      <div key={item.language} className="space-y-1">
+                        <p className="text-sm font-semibold">{item.language}</p>
+                        <p className="text-sm bg-muted p-2 border-l-2 border-primary">{item.message}</p>
+                      </div>
+                    ))}
+                    {getConfiguredLanguagesWithMessages("app").length === 0 && (
+                      <p className="text-sm text-muted-foreground italic">No messages configured</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-4 text-sm pt-2 border-t">
+                  <div>
+                    <p className="text-muted-foreground">Cap per Channel</p>
+                    <p className="font-medium">{formData.channelSettings.app.cap?.toLocaleString() || "Not set"}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Retry on Failure</p>
+                    <p className="font-medium flex items-center gap-1">
+                      {formData.channelSettings.app.retryOnFailure ? (
+                        <><CheckCircle2 className="w-4 h-4 text-green-600" /> Yes</>
+                      ) : (
+                        "No"
+                      )}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Channel Priority</p>
+                    <p className="font-medium">{formData.channelSettings.app.priority || "Not set"}</p>
+                  </div>
+                </div>
               </div>
             )}
-            
+
+            {/* Email Channel */}
             {formData.channels.email && (
-              <div className="p-3 bg-muted text-sm">
-                <p className="text-xs text-muted-foreground mb-1">
-                  Email ({languageNames[formData.emailContent.language] || "English"})
-                </p>
-                <p className="font-medium">{formData.emailContent.subject || "Subject"}</p>
+              <div className="border p-4 space-y-4">
+                <div className="flex items-center gap-3">
+                  <Mail className="w-5 h-5 text-primary" />
+                  <span className="font-semibold">Channel: Email</span>
+                  <Badge variant="secondary" className="bg-green-100 text-green-700">Enabled</Badge>
+                </div>
+                
+                <div className="space-y-3">
+                  <p className="text-sm font-medium text-muted-foreground">Languages:</p>
+                  <div className="space-y-3 pl-4">
+                    <div className="space-y-1">
+                      <p className="text-sm font-semibold">{languageNames[formData.emailContent.language] || "English"}</p>
+                      <div className="bg-muted p-2 border-l-2 border-primary space-y-1">
+                        <p className="text-sm"><strong>Subject:</strong> {formData.emailContent.subject || "Not set"}</p>
+                        <p className="text-sm">{formData.emailContent.body || "No body content"}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-4 text-sm pt-2 border-t">
+                  <div>
+                    <p className="text-muted-foreground">Cap per Channel</p>
+                    <p className="font-medium">{formData.channelSettings.email.cap?.toLocaleString() || "Not set"}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Retry on Failure</p>
+                    <p className="font-medium flex items-center gap-1">
+                      {formData.channelSettings.email.retryOnFailure ? (
+                        <><CheckCircle2 className="w-4 h-4 text-green-600" /> Yes</>
+                      ) : (
+                        "No"
+                      )}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Channel Priority</p>
+                    <p className="font-medium">{formData.channelSettings.email.priority || "Not set"}</p>
+                  </div>
+                </div>
               </div>
+            )}
+
+            {/* No channels selected */}
+            {!formData.channels.sms && !formData.channels.ussd && !formData.channels.app && !formData.channels.email && (
+              <p className="text-sm text-muted-foreground italic">No channels configured</p>
             )}
           </div>
         </div>
@@ -212,7 +366,7 @@ export function ReviewSubmitStep({ formData }: ReviewSubmitStepProps) {
         </div>
 
         {/* Schedule Summary */}
-        <div className="border p-4 space-y-4 lg:col-span-2">
+        <div className="border p-4 space-y-4">
           <div className="flex items-center gap-2 pb-2 border-b">
             <Calendar className="w-4 h-4 text-primary" />
             <h3 className="font-semibold">Schedule & Controls</h3>

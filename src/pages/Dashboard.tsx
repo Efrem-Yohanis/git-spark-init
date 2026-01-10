@@ -1,12 +1,9 @@
-import { Users, UserCheck, UserMinus, Megaphone, Wallet, TrendingUp } from "lucide-react";
+import { Users, UserCheck, UserPlus, TrendingDown, Moon } from "lucide-react";
 import { MetricCard } from "@/components/dashboard/MetricCard";
 import { ActivityChart } from "@/components/dashboard/ActivityChart";
 import { CampaignPerformance } from "@/components/dashboard/CampaignPerformance";
-import { RecentCampaigns } from "@/components/dashboard/RecentCampaigns";
 import { ChurnRiskWidget } from "@/components/dashboard/ChurnRiskWidget";
-import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Download, Filter } from "lucide-react";
 
 export default function Dashboard() {
   return (
@@ -19,88 +16,70 @@ export default function Dashboard() {
         </div>
         <div className="flex items-center gap-3">
           <Select defaultValue="7d">
-            <SelectTrigger className="w-40">
+            <SelectTrigger className="w-40 rounded-none">
               <SelectValue placeholder="Time range" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="rounded-none">
               <SelectItem value="24h">Last 24 hours</SelectItem>
               <SelectItem value="7d">Last 7 days</SelectItem>
               <SelectItem value="30d">Last 30 days</SelectItem>
               <SelectItem value="90d">Last 90 days</SelectItem>
             </SelectContent>
           </Select>
-          <Select defaultValue="all">
-            <SelectTrigger className="w-40">
-              <Filter className="w-4 h-4 mr-2" />
-              <SelectValue placeholder="Region" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Regions</SelectItem>
-              <SelectItem value="nairobi">Nairobi</SelectItem>
-              <SelectItem value="mombasa">Mombasa</SelectItem>
-              <SelectItem value="kisumu">Kisumu</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button variant="outline" size="icon">
-            <Download className="w-4 h-4" />
-          </Button>
         </div>
       </div>
 
       {/* Metric Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         <MetricCard
           title="Total Customers"
           value="2.4M"
           change={5.2}
           changeLabel="from last month"
           icon={<Users className="w-5 h-5 text-accent-foreground" />}
+          className="rounded-none"
         />
         <MetricCard
-          title="Active (7 days)"
+          title="Active Customers"
           value="1.8M"
           change={3.1}
           changeLabel="from last week"
           icon={<UserCheck className="w-5 h-5 text-accent-foreground" />}
+          className="rounded-none"
         />
         <MetricCard
-          title="Dormant (30+ days)"
+          title="New Registered"
+          value="52K"
+          change={12.5}
+          changeLabel="from last month"
+          icon={<UserPlus className="w-5 h-5 text-accent-foreground" />}
+          className="rounded-none"
+        />
+        <MetricCard
+          title="Churner Rate"
+          value="4.2%"
+          change={-0.8}
+          changeLabel="from last month"
+          icon={<TrendingDown className="w-5 h-5 text-accent-foreground" />}
+          className="rounded-none"
+        />
+        <MetricCard
+          title="Dormant"
           value="420K"
           change={-2.4}
           changeLabel="from last month"
-          icon={<UserMinus className="w-5 h-5 text-accent-foreground" />}
-        />
-        <MetricCard
-          title="Campaigns Running"
-          value="12"
-          icon={<Megaphone className="w-5 h-5 text-accent-foreground" />}
-        />
-        <MetricCard
-          title="Reward Balance"
-          value="KES 4.2M"
-          change={-15}
-          changeLabel="usage rate up"
-          icon={<Wallet className="w-5 h-5 text-accent-foreground" />}
-        />
-        <MetricCard
-          title="Activation Rate"
-          value="68%"
-          change={8.3}
-          changeLabel="improvement"
-          icon={<TrendingUp className="w-5 h-5 text-accent-foreground" />}
+          icon={<Moon className="w-5 h-5 text-accent-foreground" />}
+          className="rounded-none"
         />
       </div>
 
-      {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <ActivityChart />
-        <ChurnRiskWidget />
-      </div>
+      {/* Full Width Activity Chart */}
+      <ActivityChart />
 
       {/* Bottom Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <CampaignPerformance />
-        <RecentCampaigns />
+        <ChurnRiskWidget />
       </div>
     </div>
   );

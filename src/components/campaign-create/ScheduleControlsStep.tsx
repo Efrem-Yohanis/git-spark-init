@@ -88,28 +88,6 @@ export function ScheduleControlsStep({ formData, updateFormData }: ScheduleContr
         </div>
       )}
 
-      {/* Frequency Cap */}
-      <div className="space-y-3">
-        <Label>Frequency Cap</Label>
-        <Select
-          value={formData.frequencyCap}
-          onValueChange={(value) => updateFormData({ frequencyCap: value })}
-        >
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {frequencyOptions.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <p className="text-xs text-muted-foreground">
-          Controls how often a customer can receive this campaign
-        </p>
-      </div>
     </div>
   );
 }

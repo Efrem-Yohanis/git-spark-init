@@ -22,19 +22,19 @@ import {
 import { cn } from "@/lib/utils";
 
 const users = [
-  { id: 1, name: "John Kamau", email: "john.k@mpesa.co.ke", role: "Admin", status: "Active", lastLogin: "2024-01-15 09:30" },
-  { id: 2, name: "Sarah Mutua", email: "sarah.m@mpesa.co.ke", role: "Marketing", status: "Active", lastLogin: "2024-01-15 08:45" },
-  { id: 3, name: "Peter Omondi", email: "peter.o@mpesa.co.ke", role: "Operations", status: "Active", lastLogin: "2024-01-14 16:20" },
-  { id: 4, name: "Grace Njeri", email: "grace.n@mpesa.co.ke", role: "Finance", status: "Active", lastLogin: "2024-01-15 10:00" },
-  { id: 5, name: "David Wekesa", email: "david.w@mpesa.co.ke", role: "Viewer", status: "Inactive", lastLogin: "2024-01-10 11:30" },
+  { id: 1, name: "Abebe Kebede", email: "abebe.k@mpesa.et", role: "Admin", status: "Active", lastLogin: "2024-01-15 09:30" },
+  { id: 2, name: "Tigist Haile", email: "tigist.h@mpesa.et", role: "Marketing", status: "Active", lastLogin: "2024-01-15 08:45" },
+  { id: 3, name: "Bekele Tadesse", email: "bekele.t@mpesa.et", role: "Operations", status: "Active", lastLogin: "2024-01-14 16:20" },
+  { id: 4, name: "Meron Assefa", email: "meron.a@mpesa.et", role: "Finance", status: "Active", lastLogin: "2024-01-15 10:00" },
+  { id: 5, name: "Dawit Gebre", email: "dawit.g@mpesa.et", role: "Viewer", status: "Inactive", lastLogin: "2024-01-10 11:30" },
 ];
 
 const auditLogs = [
-  { id: 1, user: "John Kamau", action: "Created campaign 'Festive Rewards'", timestamp: "2024-01-15 14:30", ip: "192.168.1.100" },
-  { id: 2, user: "Sarah Mutua", action: "Approved segment 'High Value Active'", timestamp: "2024-01-15 13:45", ip: "192.168.1.101" },
-  { id: 3, user: "System", action: "Reward posting completed - KES 50,000", timestamp: "2024-01-15 12:00", ip: "-" },
-  { id: 4, user: "Peter Omondi", action: "Exported MSISDN list", timestamp: "2024-01-15 11:30", ip: "192.168.1.102" },
-  { id: 5, user: "Grace Njeri", action: "Updated reward budget allocation", timestamp: "2024-01-15 10:15", ip: "192.168.1.103" },
+  { id: 1, user: "Abebe Kebede", action: "Created campaign 'Meskel Rewards'", timestamp: "2024-01-15 14:30", ip: "192.168.1.100" },
+  { id: 2, user: "Tigist Haile", action: "Approved segment 'High Value Active'", timestamp: "2024-01-15 13:45", ip: "192.168.1.101" },
+  { id: 3, user: "System", action: "Reward posting completed - ETB 50,000", timestamp: "2024-01-15 12:00", ip: "-" },
+  { id: 4, user: "Bekele Tadesse", action: "Exported MSISDN list", timestamp: "2024-01-15 11:30", ip: "192.168.1.102" },
+  { id: 5, user: "Meron Assefa", action: "Updated reward budget allocation", timestamp: "2024-01-15 10:15", ip: "192.168.1.103" },
 ];
 
 const getRoleColor = (role: string) => {

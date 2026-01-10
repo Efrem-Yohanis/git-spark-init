@@ -15,11 +15,11 @@ import {
 import { cn } from "@/lib/utils";
 
 const campaigns = [
-  { id: 1, name: "Festive Season Rewards", type: "Incentive", segment: "High Value Active", channels: ["SMS", "Push"], status: "Running", startDate: "2024-01-01", endDate: "2024-01-31" },
-  { id: 2, name: "Win-back December", type: "Win-back", segment: "Dormant 60 Days", channels: ["SMS", "USSD"], status: "Running", startDate: "2024-01-10", endDate: "2024-02-10" },
-  { id: 3, name: "New Year Promo", type: "Incentive", segment: "All Active", channels: ["SMS"], status: "Completed", startDate: "2023-12-30", endDate: "2024-01-02" },
-  { id: 4, name: "Transaction Alert Update", type: "Info", segment: "All Customers", channels: ["SMS"], status: "Scheduled", startDate: "2024-01-20", endDate: "2024-01-20" },
-  { id: 5, name: "Youth Urban Campaign", type: "Incentive", segment: "Nairobi Youth", channels: ["Push", "Email"], status: "Draft", startDate: "-", endDate: "-" },
+  { id: 1, name: "Meskel Season Rewards", type: "Incentive", segment: "High Value Active", channels: ["SMS", "Push"], status: "Running", startDate: "2024-01-01", endDate: "2024-01-31" },
+  { id: 2, name: "Timket Win-back", type: "Win-back", segment: "Dormant 60 Days", channels: ["SMS", "USSD"], status: "Running", startDate: "2024-01-10", endDate: "2024-02-10" },
+  { id: 3, name: "Enkutatash Promo", type: "Incentive", segment: "All Active", channels: ["SMS"], status: "Completed", startDate: "2023-12-30", endDate: "2024-01-02" },
+  { id: 4, name: "Genna Alert Update", type: "Info", segment: "All Customers", channels: ["SMS"], status: "Scheduled", startDate: "2024-01-20", endDate: "2024-01-20" },
+  { id: 5, name: "Addis Ababa Youth Campaign", type: "Incentive", segment: "Addis Youth", channels: ["Push", "Email"], status: "Draft", startDate: "-", endDate: "-" },
 ];
 
 const getStatusColor = (status: string) => {

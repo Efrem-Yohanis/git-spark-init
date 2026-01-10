@@ -14,39 +14,47 @@ interface SegmentKPIsProps {
     churnRiskCount: number;
     avgChurnProbability: number;
   };
+  hideActiveRate?: boolean;
 }
 
-export function SegmentKPICards({ kpis }: SegmentKPIsProps) {
+export function SegmentKPICards({ kpis, hideActiveRate = false }: SegmentKPIsProps) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className={cn(
+      "grid gap-4",
+      hideActiveRate 
+        ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" 
+        : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4"
+    )}>
       {/* Active Rate Card */}
-      <Card className="border-l-4 border-l-success">
-        <CardContent className="p-4">
-          <div className="flex items-start justify-between">
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-muted-foreground">Active Rate</p>
-              <p className="text-2xl font-bold">{kpis.activeRate}%</p>
-              <div className="flex items-center gap-1 text-sm">
-                {kpis.activeRateTrend >= 0 ? (
-                  <TrendingUp className="w-4 h-4 text-success" />
-                ) : (
-                  <TrendingDown className="w-4 h-4 text-destructive" />
-                )}
-                <span className={cn(
-                  "font-medium",
-                  kpis.activeRateTrend >= 0 ? "text-success" : "text-destructive"
-                )}>
-                  {kpis.activeRateTrend >= 0 ? "+" : ""}{kpis.activeRateTrend}%
-                </span>
-                <span className="text-muted-foreground">vs last period</span>
+      {!hideActiveRate && (
+        <Card className="border-l-4 border-l-success">
+          <CardContent className="p-4">
+            <div className="flex items-start justify-between">
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-muted-foreground">Active Rate</p>
+                <p className="text-2xl font-bold">{kpis.activeRate}%</p>
+                <div className="flex items-center gap-1 text-sm">
+                  {kpis.activeRateTrend >= 0 ? (
+                    <TrendingUp className="w-4 h-4 text-success" />
+                  ) : (
+                    <TrendingDown className="w-4 h-4 text-destructive" />
+                  )}
+                  <span className={cn(
+                    "font-medium",
+                    kpis.activeRateTrend >= 0 ? "text-success" : "text-destructive"
+                  )}>
+                    {kpis.activeRateTrend >= 0 ? "+" : ""}{kpis.activeRateTrend}%
+                  </span>
+                  <span className="text-muted-foreground">vs last period</span>
+                </div>
+              </div>
+              <div className="p-2 rounded-lg bg-success/10">
+                <TrendingUp className="w-5 h-5 text-success" />
               </div>
             </div>
-            <div className="p-2 rounded-lg bg-success/10">
-              <TrendingUp className="w-5 h-5 text-success" />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Newly Registered Users Card */}
       <Card className="border-l-4 border-l-info">

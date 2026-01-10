@@ -38,6 +38,7 @@ import { cn } from "@/lib/utils";
 interface RewardAccount {
   id: string;
   name: string;
+  accountNumber: string;
   balance: number;
   assignedCampaigns: string[];
   status: "Active" | "Inactive";
@@ -45,10 +46,22 @@ interface RewardAccount {
   description?: string;
 }
 
+// Simulated external source accounts (would come from API in real implementation)
+const externalSourceAccounts: Record<string, { name: string; balance: number }> = {
+  "ACC-001": { name: "Main Reward Pool", balance: 5000000 },
+  "ACC-002": { name: "Win-back Fund", balance: 1200000 },
+  "ACC-003": { name: "Loyalty Rewards", balance: 850000 },
+  "ACC-004": { name: "Agent Commission Pool", balance: 320000 },
+  "ACC-005": { name: "Emergency Reserve", balance: 50000 },
+  "ACC-006": { name: "Promotional Fund", balance: 2500000 },
+  "ACC-007": { name: "Partner Rewards", balance: 1800000 },
+};
+
 const initialAccounts: RewardAccount[] = [
   {
     id: "RA001",
     name: "Main Reward Pool",
+    accountNumber: "ACC-001",
     balance: 5000000,
     assignedCampaigns: ["Holiday Campaign", "New User Bonus"],
     status: "Active",
@@ -58,6 +71,7 @@ const initialAccounts: RewardAccount[] = [
   {
     id: "RA002",
     name: "Win-back Fund",
+    accountNumber: "ACC-002",
     balance: 1200000,
     assignedCampaigns: ["Dormant Reactivation"],
     status: "Active",
@@ -67,6 +81,7 @@ const initialAccounts: RewardAccount[] = [
   {
     id: "RA003",
     name: "Loyalty Rewards",
+    accountNumber: "ACC-003",
     balance: 850000,
     assignedCampaigns: ["VIP Tier Bonus", "Monthly Loyalty"],
     status: "Active",
@@ -76,6 +91,7 @@ const initialAccounts: RewardAccount[] = [
   {
     id: "RA004",
     name: "Agent Commission Pool",
+    accountNumber: "ACC-004",
     balance: 320000,
     assignedCampaigns: [],
     status: "Inactive",
@@ -85,6 +101,7 @@ const initialAccounts: RewardAccount[] = [
   {
     id: "RA005",
     name: "Emergency Reserve",
+    accountNumber: "ACC-005",
     balance: 50000,
     assignedCampaigns: [],
     status: "Active",
@@ -109,10 +126,12 @@ export default function RewardAccountManagement() {
   const [selectedAccount, setSelectedAccount] = useState<RewardAccount | null>(null);
 
   // Form states
-  const [formName, setFormName] = useState("");
-  const [formBalance, setFormBalance] = useState("");
+  const [formAccountNumber, setFormAccountNumber] = useState("");
+  const [formFetchedBalance, setFormFetchedBalance] = useState<number | null>(null);
+  const [formFetchedName, setFormFetchedName] = useState("");
   const [formStatus, setFormStatus] = useState<"Active" | "Inactive">("Active");
   const [formDescription, setFormDescription] = useState("");
+  const [fetchError, setFetchError] = useState("");
 
   const filteredAccounts = accounts.filter((account) => {
     const matchesSearch = account.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -126,17 +145,34 @@ export default function RewardAccountManagement() {
   });
 
   const resetForm = () => {
-    setFormName("");
-    setFormBalance("");
+    setFormAccountNumber("");
+    setFormFetchedBalance(null);
+    setFormFetchedName("");
     setFormStatus("Active");
     setFormDescription("");
+    setFetchError("");
+  };
+
+  const handleFetchAccount = () => {
+    const sourceAccount = externalSourceAccounts[formAccountNumber];
+    if (sourceAccount) {
+      setFormFetchedBalance(sourceAccount.balance);
+      setFormFetchedName(sourceAccount.name);
+      setFetchError("");
+    } else {
+      setFormFetchedBalance(null);
+      setFormFetchedName("");
+      setFetchError("Account not found in source system");
+    }
   };
 
   const handleCreate = () => {
+    if (formFetchedBalance === null) return;
     const newAccount: RewardAccount = {
       id: `RA${String(accounts.length + 1).padStart(3, "0")}`,
-      name: formName,
-      balance: parseFloat(formBalance) || 0,
+      name: formFetchedName,
+      accountNumber: formAccountNumber,
+      balance: formFetchedBalance,
       assignedCampaigns: [],
       status: formStatus,
       lastUpdated: new Date().toISOString().slice(0, 16).replace("T", " "),
@@ -149,12 +185,15 @@ export default function RewardAccountManagement() {
 
   const handleEdit = () => {
     if (!selectedAccount) return;
+    // Refresh balance from source system
+    const sourceAccount = externalSourceAccounts[selectedAccount.accountNumber];
+    const updatedBalance = sourceAccount ? sourceAccount.balance : selectedAccount.balance;
+    
     const updated = accounts.map((acc) =>
       acc.id === selectedAccount.id
         ? {
             ...acc,
-            name: formName,
-            balance: parseFloat(formBalance) || acc.balance,
+            balance: updatedBalance,
             status: formStatus,
             description: formDescription,
             lastUpdated: new Date().toISOString().slice(0, 16).replace("T", " "),
@@ -181,8 +220,9 @@ export default function RewardAccountManagement() {
 
   const openEditModal = (account: RewardAccount) => {
     setSelectedAccount(account);
-    setFormName(account.name);
-    setFormBalance(String(account.balance));
+    setFormAccountNumber(account.accountNumber);
+    setFormFetchedBalance(account.balance);
+    setFormFetchedName(account.name);
     setFormStatus(account.status);
     setFormDescription(account.description || "");
     setShowEditModal(true);
@@ -223,7 +263,7 @@ export default function RewardAccountManagement() {
         <div className="flex items-center gap-2">
           <div>
             <h1 className="text-2xl font-bold">Reward Account Management</h1>
-            <p className="text-muted-foreground">Manage reward accounts, balances, and campaign usage</p>
+            <p className="text-muted-foreground">Link and manage reward accounts from source system</p>
           </div>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -238,7 +278,7 @@ export default function RewardAccountManagement() {
         </div>
         <Button className="gap-2" onClick={() => setShowCreateModal(true)}>
           <Plus className="w-4 h-4" />
-          Add New Reward Account
+          Link Reward Account
         </Button>
       </div>
 
@@ -378,29 +418,46 @@ export default function RewardAccountManagement() {
       <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add New Reward Account</DialogTitle>
-            <DialogDescription>Create a new reward account for campaigns.</DialogDescription>
+            <DialogTitle>Link Reward Account</DialogTitle>
+            <DialogDescription>
+              Enter the source system account number to link a reward account. Balance will be fetched from the source system.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Account Name *</Label>
-              <Input
-                id="name"
-                placeholder="Enter account name"
-                value={formName}
-                onChange={(e) => setFormName(e.target.value)}
-              />
+              <Label htmlFor="accountNumber">Source Account Number *</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="accountNumber"
+                  placeholder="e.g., ACC-001"
+                  value={formAccountNumber}
+                  onChange={(e) => {
+                    setFormAccountNumber(e.target.value);
+                    setFormFetchedBalance(null);
+                    setFormFetchedName("");
+                    setFetchError("");
+                  }}
+                />
+                <Button type="button" variant="secondary" onClick={handleFetchAccount} disabled={!formAccountNumber}>
+                  Fetch
+                </Button>
+              </div>
+              {fetchError && (
+                <p className="text-sm text-destructive">{fetchError}</p>
+              )}
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="balance">Initial Balance (ETB) *</Label>
-              <Input
-                id="balance"
-                type="number"
-                placeholder="Enter initial balance"
-                value={formBalance}
-                onChange={(e) => setFormBalance(e.target.value)}
-              />
-            </div>
+            {formFetchedBalance !== null && (
+              <div className="p-3 bg-muted rounded-md space-y-2">
+                <div>
+                  <p className="text-sm text-muted-foreground">Account Name (from source)</p>
+                  <p className="font-medium">{formFetchedName}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Current Balance (from source)</p>
+                  <p className="font-medium text-success">{formFetchedBalance.toLocaleString()} ETB</p>
+                </div>
+              </div>
+            )}
             <div className="space-y-2">
               <Label>Status</Label>
               <Select value={formStatus} onValueChange={(v) => setFormStatus(v as "Active" | "Inactive")}>
@@ -424,11 +481,11 @@ export default function RewardAccountManagement() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreateModal(false)}>
+            <Button variant="outline" onClick={() => { setShowCreateModal(false); resetForm(); }}>
               Cancel
             </Button>
-            <Button onClick={handleCreate} disabled={!formName || !formBalance}>
-              Create Account
+            <Button onClick={handleCreate} disabled={formFetchedBalance === null}>
+              Link Account
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -508,49 +565,52 @@ export default function RewardAccountManagement() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Edit Reward Account</DialogTitle>
-            <DialogDescription>Update account details.</DialogDescription>
+            <DialogDescription>
+              Update account settings. Balance is synced from the source system.
+            </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="editName">Account Name *</Label>
-              <Input
-                id="editName"
-                value={formName}
-                onChange={(e) => setFormName(e.target.value)}
-              />
+          {selectedAccount && (
+            <div className="space-y-4 py-4">
+              <div className="p-3 bg-muted rounded-md space-y-2">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Source Account Number</p>
+                    <p className="font-medium">{selectedAccount.accountNumber}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Account Name</p>
+                    <p className="font-medium">{selectedAccount.name}</p>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Current Balance (from source)</p>
+                  <p className="font-medium text-success">{formFetchedBalance?.toLocaleString() || selectedAccount.balance.toLocaleString()} ETB</p>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <Select value={formStatus} onValueChange={(v) => setFormStatus(v as "Active" | "Inactive")}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Active">Active</SelectItem>
+                    <SelectItem value="Inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="editDescription">Description</Label>
+                <Textarea
+                  id="editDescription"
+                  value={formDescription}
+                  onChange={(e) => setFormDescription(e.target.value)}
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="editBalance">Balance Adjustment (ETB)</Label>
-              <Input
-                id="editBalance"
-                type="number"
-                value={formBalance}
-                onChange={(e) => setFormBalance(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Status</Label>
-              <Select value={formStatus} onValueChange={(v) => setFormStatus(v as "Active" | "Inactive")}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Active">Active</SelectItem>
-                  <SelectItem value="Inactive">Inactive</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="editDescription">Description</Label>
-              <Textarea
-                id="editDescription"
-                value={formDescription}
-                onChange={(e) => setFormDescription(e.target.value)}
-              />
-            </div>
-          </div>
+          )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowEditModal(false)}>
+            <Button variant="outline" onClick={() => { setShowEditModal(false); resetForm(); }}>
               Cancel
             </Button>
             <Button onClick={handleEdit}>Save Changes</Button>
@@ -562,18 +622,29 @@ export default function RewardAccountManagement() {
       <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete Reward Account</DialogTitle>
+            <DialogTitle>Remove Reward Account Integration</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete this account? This action cannot be undone.
+              This will only remove the account from this system. The source account will remain unchanged.
             </DialogDescription>
           </DialogHeader>
           {selectedAccount && (
-            <div className="py-4">
-              <p className="text-sm">
-                Account: <strong>{selectedAccount.name}</strong> ({selectedAccount.id})
-              </p>
-              <p className="text-sm">
-                Balance: <strong>{selectedAccount.balance.toLocaleString()} ETB</strong>
+            <div className="py-4 space-y-3">
+              <div className="p-3 bg-muted rounded-md space-y-2">
+                <p className="text-sm">
+                  <span className="text-muted-foreground">Account:</span>{" "}
+                  <strong>{selectedAccount.name}</strong> ({selectedAccount.id})
+                </p>
+                <p className="text-sm">
+                  <span className="text-muted-foreground">Source Account Number:</span>{" "}
+                  <strong>{selectedAccount.accountNumber}</strong>
+                </p>
+                <p className="text-sm">
+                  <span className="text-muted-foreground">Balance:</span>{" "}
+                  <strong>{selectedAccount.balance.toLocaleString()} ETB</strong>
+                </p>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Note: This action only removes the integration. The account in the source system will not be affected.
               </p>
             </div>
           )}
@@ -582,7 +653,7 @@ export default function RewardAccountManagement() {
               Cancel
             </Button>
             <Button variant="destructive" onClick={handleDelete}>
-              Delete Account
+              Remove Integration
             </Button>
           </DialogFooter>
         </DialogContent>

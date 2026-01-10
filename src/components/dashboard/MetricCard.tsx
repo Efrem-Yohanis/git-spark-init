@@ -25,13 +25,13 @@ export function MetricCard({ title, value, change, changeLabel, icon, className 
   };
 
   return (
-    <div className={cn("bg-card rounded-xl border p-6 card-hover", className)}>
+    <div className={cn("bg-card border p-6 card-hover", className)}>
       <div className="flex items-start justify-between">
         <div className="space-y-1">
           <p className="text-sm text-muted-foreground font-medium">{title}</p>
           <p className="text-3xl font-bold tracking-tight">{value}</p>
         </div>
-        <div className="p-2.5 rounded-lg bg-accent">
+        <div className="p-2.5 bg-accent">
           {icon}
         </div>
       </div>

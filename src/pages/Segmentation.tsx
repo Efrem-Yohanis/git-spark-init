@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Search, Users, Eye } from "lucide-react";
+import { Plus, Search, Users, Eye, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -11,67 +11,44 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-
-
-const segments = [
-  {
-    id: 1,
-    name: "High Value Active Users",
-    type: "Value",
-    customerCount: 125000,
-    lastRefresh: "2024-01-15 14:30",
-    status: "Active",
-  },
-  {
-    id: 2,
-    name: "Dormant 30 Days",
-    type: "Dormant",
-    customerCount: 89500,
-    lastRefresh: "2024-01-15 14:30",
-    status: "Active",
-  },
-  {
-    id: 3,
-    name: "New Users Dec 2023",
-    type: "New",
-    customerCount: 45200,
-    lastRefresh: "2024-01-14 09:00",
-    status: "Active",
-  },
-  {
-    id: 4,
-    name: "Churn Risk High",
-    type: "Active",
-    customerCount: 24500,
-    lastRefresh: "2024-01-15 12:00",
-    status: "Active",
-  },
-  {
-    id: 5,
-    name: "Win-back Target Q1",
-    type: "Dormant",
-    customerCount: 156000,
-    lastRefresh: "2024-01-10 08:00",
-    status: "Draft",
-  },
-  {
-    id: 6,
-    name: "Addis Ababa Urban Youth",
-    type: "Custom",
-    customerCount: 78300,
-    lastRefresh: "2024-01-15 10:00",
-    status: "Active",
-  },
-];
-
+import { useSegments } from "@/hooks/useSegments";
+import { format } from "date-fns";
 
 export default function Segmentation() {
   const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
+  const { data, isLoading, error } = useSegments();
+
+  const segments = data?.segments || [];
 
   const filteredSegments = segments.filter((segment) =>
     segment.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const formatDate = (dateString: string) => {
+    try {
+      return format(new Date(dateString), "yyyy-MM-dd HH:mm");
+    } catch {
+      return dateString;
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
+        <p className="text-destructive">Failed to load segments</p>
+        <Button onClick={() => window.location.reload()}>Retry</Button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -80,6 +57,11 @@ export default function Segmentation() {
         <div>
           <h1 className="text-2xl font-bold">Segmentation</h1>
           <p className="text-muted-foreground">View and manage customer segments</p>
+          {data?.summary && (
+            <p className="text-sm text-muted-foreground mt-1">
+              {data.summary.total_segments} segments • {data.summary.total_customers_in_segments.toLocaleString()} total customers
+            </p>
+          )}
         </div>
         <Button className="gap-2" onClick={() => navigate("/segmentation/create")}>
           <Plus className="w-4 h-4" />
@@ -110,35 +92,50 @@ export default function Segmentation() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredSegments.map((segment) => (
-              <TableRow key={segment.id} className="hover:bg-muted/30 transition-colors">
-                <TableCell>
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-accent">
-                      <Users className="w-4 h-4 text-accent-foreground" />
-                    </div>
-                    <p className="font-medium">{segment.name}</p>
-                  </div>
-                </TableCell>
-                <TableCell className="text-right font-medium">
-                  {segment.customerCount.toLocaleString()}
-                </TableCell>
-                <TableCell className="text-muted-foreground">
-                  {segment.lastRefresh}
-                </TableCell>
-                <TableCell>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-2"
-                    onClick={() => navigate(`/segmentation/${segment.id}`)}
-                  >
-                    <Eye className="w-4 h-4" />
-                    View
-                  </Button>
+            {filteredSegments.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                  {searchQuery ? "No segments match your search" : "No segments found"}
                 </TableCell>
               </TableRow>
-            ))}
+            ) : (
+              filteredSegments.map((segment) => (
+                <TableRow key={segment.id} className="hover:bg-muted/30 transition-colors">
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-accent">
+                        <Users className="w-4 h-4 text-accent-foreground" />
+                      </div>
+                      <div>
+                        <p className="font-medium">{segment.name}</p>
+                        {segment.description && (
+                          <p className="text-sm text-muted-foreground line-clamp-1">
+                            {segment.description}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right font-medium">
+                    {segment.formatted_customer_count || segment.customer_count.toLocaleString()}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {formatDate(segment.last_refresh)}
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-2"
+                      onClick={() => navigate(`/segmentation/${segment.id}`)}
+                    >
+                      <Eye className="w-4 h-4" />
+                      View
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </div>

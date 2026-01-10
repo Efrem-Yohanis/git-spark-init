@@ -36,7 +36,7 @@ import { cn } from "@/lib/utils";
 
 // Mock campaign assignment data (merged header + assignment summary)
 const campaignData = {
-  campaignName: "Festive Season Rewards",
+  campaignName: "Meskel Season Rewards",
   campaignId: "CMP-2024-001",
   status: "Active" as "Active" | "Completed" | "Stopped",
   startDate: "2024-01-01",
