@@ -19,6 +19,7 @@ import CampaignListForApprover from "./pages/CampaignListForApprover";
 import AIInsights from "./pages/AIInsights";
 import Customer360 from "./pages/Customer360";
 import Reports from "./pages/Reports";
+import ReportCreate from "./pages/ReportCreate";
 import RewardAccountManagement from "./pages/RewardAccountManagement";
 import Configuration from "./pages/Configuration";
 import MpesaCoreDetail from "./pages/configuration/MpesaCoreDetail";
@@ -64,6 +65,7 @@ const App = () => (
                   <Route path="/ai-insights" element={<AIInsights />} />
                   <Route path="/customer-360" element={<Customer360 />} />
                   <Route path="/reports" element={<Reports />} />
+                  <Route path="/reports/create" element={<ReportCreate />} />
                   <Route path="/reward-accounts" element={<RewardAccountManagement />} />
                   <Route path="/configuration" element={<Configuration />} />
                   <Route path="/configuration/mpesa-core" element={<MpesaCoreDetail />} />
