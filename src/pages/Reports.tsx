@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { Download, Calendar, BarChart, FileText, Clock, Mail } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -64,6 +65,8 @@ const scheduledReports = [
 ];
 
 export default function Reports() {
+  const navigate = useNavigate();
+  
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Page Header */}
@@ -72,7 +75,7 @@ export default function Reports() {
           <h1 className="text-2xl font-bold">Reports</h1>
           <p className="text-muted-foreground">Generate and manage engagement reports</p>
         </div>
-        <Button className="gap-2">
+        <Button className="gap-2" onClick={() => navigate("/reports/create")}>
           <FileText className="w-4 h-4" />
           Create Report
         </Button>
