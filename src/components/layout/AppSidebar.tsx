@@ -12,6 +12,7 @@ import {
   ChevronLeft,
   ChevronRight,
   LogOut,
+  Shield,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -26,6 +27,7 @@ const navigationItems = [
   { name: "Customer", href: "/customer-360", icon: UserCircle },
   { name: "Reward Account", href: "/reward-accounts", icon: Wallet },
   { name: "Configuration", href: "/configuration", icon: Plug },
+  { name: "Admin", href: "/admin/users", icon: Shield },
 ];
 
 export function AppSidebar() {
